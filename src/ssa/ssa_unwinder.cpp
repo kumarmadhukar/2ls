@@ -732,7 +732,7 @@ void ssa_local_unwindert::loop_continuation_conditions(
 {
   SSA.increment_unwindings(1);
   loop_cont.push_back(get_continuation_condition(loop)); //%0
-  for(unsigned i=0; i<=loop.current_unwinding; ++i)
+  for(long i=0; i<=loop.current_unwinding; ++i)
   {
     //recurse into child loops
     for(std::vector<unsigned>::const_iterator l_it = loop.loop_nodes.begin();
