@@ -3,7 +3,10 @@
 #include <util/simplify_expr.h>
 #include "strategy_solver_predabs.h"
 
-bool strategy_solver_predabst::iterate(invariantt &_inv) 
+//Comment: assertion check is not possible because this is a gfp solver
+
+strategy_solver_baset::progresst
+strategy_solver_predabst::iterate(invariantt &_inv) 
 {
   predabs_domaint::templ_valuet &inv = 
     static_cast<predabs_domaint::templ_valuet &>(_inv);
@@ -71,8 +74,8 @@ bool strategy_solver_predabst::iterate(invariantt &_inv)
 
       todo_preds.erase(e_it);
 
-      return true;
+      return CHANGED;
     }
 
-  return false;
+  return CONVERGED;
 }

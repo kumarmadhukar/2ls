@@ -25,6 +25,8 @@ public:
 
   summaryt get(const function_namet &function_name) const 
     { return store.at(function_name); }
+  void set(const function_namet &function_name, const summaryt &summary) 
+    { store[function_name] = summary; }
   bool exists(const function_namet &function_name) const  
     { return store.find(function_name)!=store.end(); }
   void put(const function_namet &function_name, const summaryt &summary);

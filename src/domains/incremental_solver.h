@@ -15,11 +15,11 @@ Author: Peter Schrammel
 #include <solvers/flattening/bv_pointers.h>
 #include <solvers/refinement/bv_refinement.h>
 #include <solvers/sat/satcheck.h>
+#include <util/find_symbols.h>
 
 #include "domain.h"
 #include "util.h"
 
-//#define DISPLAY_FORMULA
 //#define NO_ARITH_REFINEMENT
 //#define NON_INCREMENTAL // (experimental)
 
@@ -93,8 +93,38 @@ class incremental_solvert : public messaget
     solver->set_assumptions(whole_formula);
 #endif
 #endif
-
+#if defined(DEBUG_FORMULA) || defined(DISPLAY_FORMULA)
+    decision_proceduret::resultt result = (*solver)();
+#endif
+#if defined(DEBUG_FORMULA) && defined(DEBUG_OUTPUT)
+    if(result==decision_proceduret::D_UNSATISFIABLE)
+    {
+      for(unsigned i=0; i<formula_expr.size(); i++) 
+      {
+        if(solver->is_in_conflict(formula[i]))
+          std::cout << "is_in_conflict: " 
+              << from_expr(ns, "", formula_expr[i]) << std::endl;
+      }
+    }
+#endif
+#if (defined(DEBUG_FORMULA)  && defined(DEBUG_OUTPUT)) || defined(DISPLAY_FORMULA)
+    if(result==decision_proceduret::D_SATISFIABLE)
+    {
+      std::set<symbol_exprt> vars;
+      for(unsigned i=0; i<formula_expr.size(); i++) 
+        find_symbols(formula_expr[i], vars);
+      for(std::set<symbol_exprt>::const_iterator it = vars.begin();
+          it != vars.end(); ++it)
+      {
+        std::cout << "assignment: " << from_expr(ns, "", *it) << " = " 
+                  << from_expr(ns, "", solver->get(*it)) << std::endl;
+      }
+    }
+    return result;
+#endif
+#if !defined(DEBUG_FORMULA)  && !defined(DISPLAY_FORMULA)
     return (*solver)();    
+#endif
   }
 
   exprt get(const exprt& expr) { return solver->get(expr); }
@@ -123,7 +153,8 @@ class incremental_solvert : public messaget
 
   //for debugging
   bvt formula;
-  void debug_add_to_formula(const exprt &expr);
+  exprt::operandst formula_expr;
+  void debug_add_to_formula(const exprt &expr, exprt activation=nil_exprt());
 
   //context assumption literals
   bvt activation_literals;
@@ -169,8 +200,10 @@ static inline incremental_solvert & operator << (
 #ifdef DISPLAY_FORMULA
   if(!dest.activation_literals.empty())
     std::cerr << "add_to_solver(" << !dest.activation_literals.back() << "): " 
-	      << from_expr(dest.ns,"",src) << std::endl;  else
+	      << from_expr(dest.ns,"",src) << std::endl;
+  else
       std::cerr << "add_to_solver: " << from_expr(dest.ns,"",src) << std::endl;
+  dest.formula_expr.push_back(src);
 #endif
 
 #ifdef NON_INCREMENTAL
@@ -184,8 +217,8 @@ static inline incremental_solvert & operator << (
     *dest.solver << src;
 #else
   if(!dest.activation_literals.empty())
-    dest.debug_add_to_formula(
-      or_exprt(src,literal_exprt(!dest.activation_literals.back())));
+    dest.debug_add_to_formula(src,
+                              literal_exprt(!dest.activation_literals.back()));
   else 
     dest.debug_add_to_formula(src);
 #endif

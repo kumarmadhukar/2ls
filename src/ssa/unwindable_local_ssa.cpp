@@ -233,6 +233,12 @@ Function: unwindable_local_SSAt::rename
 
 void unwindable_local_SSAt::rename(exprt &expr, locationt current_loc)
 {
+  if (expr.id() == ID_function_application) 
+  {
+    std::string unwind_suffix = odometer_to_string(current_unwindings,
+						   current_unwindings.size());
+    expr.set(ID_suffix,unwind_suffix);
+  }
   if(expr.id()==ID_symbol)
   {
     symbol_exprt &s = to_symbol_expr(expr);
@@ -245,6 +251,7 @@ void unwindable_local_SSAt::rename(exprt &expr, locationt current_loc)
     std::string unwind_suffix = odometer_to_string(current_unwindings,
 					    def_level);
     s.set_identifier(id2string(id)+unwind_suffix);
+    s.set(ID_suffix,unwind_suffix);
 #if 0
   std::cout << "DEF_LOC: " << def_loc->location_number << std::endl;
   std::cout << "DEF_LEVEL: " << def_level << std::endl;
@@ -259,6 +266,7 @@ void unwindable_local_SSAt::rename(exprt &expr, locationt current_loc)
   {
     std::string unwind_suffix = odometer_to_string(current_unwindings,
 						   current_unwindings.size());
+    expr.set(ID_suffix,unwind_suffix);
     expr.set(ID_identifier, 
 	     id2string(expr.get(ID_identifier))+unwind_suffix+suffix);
   }

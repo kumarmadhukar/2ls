@@ -28,7 +28,7 @@ class optionst;
   "(bounds-check)(pointer-check)(div-by-zero-check)(memory-leak-check)" \
   "(signed-overflow-check)(unsigned-overflow-check)" \
   "(float-overflow-check)(nan-check)" \
-  "(array-abstraction)" \
+  "(array-abstraction)(refine)" \
   "(non-incremental)" \
   "(no-assertions)(no-assumptions)" \
   "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \
@@ -46,15 +46,17 @@ class optionst;
   "(lexicographic-ranking-function):(monolithic-ranking-function)" \
   "(max-inner-ranking-iterations):" \
   "(preconditions)(sufficient)" \
+  "(instrument-output):" \
   "(show-locs)(show-vcc)(show-properties)(show-trace)(show-fixed-points)(show-stats)" \
   "(show-goto-functions)(show-guards)(show-defs)(show-ssa)(show-assignments)" \
   "(show-invariants)(std-invariants)" \
+  "(show-calling-contexts):" \
   "(property):(all-properties)(k-induction)(incremental-bmc)" \
-  "(no-spurious-check)" \
+  "(no-spurious-check)(unit-check)" \
   "(no-simplify)(no-fixed-point)" \
   "(graphml-cex):(json-cex):" \
-  "(no-spurious-check)(no-all-properties)" \
-  "(competition-mode)(slice)(no-propagation)" \
+  "(spurious-check):(no-all-properties)" \
+  "(competition-mode)(slice)(no-propagation)(ssa-propagation)" \
   "(no-unwinding-assertions)"
   // the last line is for CBMC-regression testing only
 
@@ -73,6 +75,9 @@ public:
     const std::string &extra_options);
 
 protected:
+  ui_message_handlert ui_message_handler;
+  virtual void register_languages(); 
+
   void get_command_line_options(optionst &options);
 
   bool get_goto_program(
@@ -145,7 +150,7 @@ protected:
   void inline_main(goto_modelt &goto_model);
   void propagate_constants(goto_modelt &goto_model);
   void nondet_locals(goto_modelt &goto_model);
-  void goto_unwind(goto_modelt &goto_model, unsigned k);
+  void unwind_goto_into_loop(goto_modelt &goto_model, unsigned k);
   void replace_types_rec(const replace_symbolt &replace_const, exprt &expr);
   exprt evaluate_casts_in_constants(const exprt &expr, const typet& parent_type,
 				    bool &valid);

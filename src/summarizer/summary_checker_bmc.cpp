@@ -8,6 +8,10 @@ Author: Peter Schrammel
 
 #include "summary_checker_bmc.h"
 
+#include "../ssa/ssa_refiner.h"
+#include "../ssa/ssa_refiner_monolithic.h"
+#include "../ssa/ssa_refiner_selective.h"
+
 
 /*******************************************************************\
 
@@ -25,6 +29,9 @@ property_checkert::resultt summary_checker_bmct::operator()(
   const goto_modelt &goto_model)
 {
   const namespacet ns(goto_model.symbol_table);
+  irep_idt entry_function = goto_model.goto_functions.entry_point();
+  if(options.get_bool_option("unit-check"))
+     entry_function = "";
 
   SSA_functions(goto_model,ns);
 
@@ -35,12 +42,36 @@ property_checkert::resultt summary_checker_bmct::operator()(
   status() << "Max-unwind is " << max_unwind << eom;
   ssa_unwinder.init_localunwinders();
 
-  for(unsigned unwind = 0; unwind<=max_unwind; unwind++)
+  ssa_refinert *ssa_refiner;
+  if((options.get_bool_option("inline")))
+    ssa_refiner = new ssa_refiner_monolithict(summary_db, ssa_unwinder, 
+                                              max_unwind);
+  else
+    ssa_refiner = new ssa_refiner_selectivet(ssa_db, ssa_unwinder, 
+                                             max_unwind, ssa_inliner, reason);
+  ssa_refiner->set_message_handler(get_message_handler());
+
+  //while can refine
+  while((*ssa_refiner)())
   {
-    status() << "Unwinding (k=" << unwind << ")" << messaget::eom;
-    summary_db.mark_recompute_all();
-    ssa_unwinder.unwind_all(unwind);
-    result =  check_properties(); 
+    unsigned unwind = ssa_refiner->get_unwind();
+
+    //dependency graphs
+    if(!(options.get_bool_option("inline")))
+    {
+      if((options.get_option("spurious-check") != "concrete") &&
+         (options.get_option("spurious-check") != "abstract"))
+      {
+        SSA_dependency_graphs(goto_model, ns);
+      }
+    }
+
+    //check
+    std::set<irep_idt> seen_function_calls;
+    result =  check_properties(entry_function, entry_function, 
+                               seen_function_calls, false); 
+
+    //result
     if(result == property_checkert::PASS) 
     {
       status() << "incremental BMC proof found after " 

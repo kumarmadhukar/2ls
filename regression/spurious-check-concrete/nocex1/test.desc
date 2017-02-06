@@ -1,0 +1,6 @@
+CORE
+main.c
+--havoc
+^EXIT=0$
+^SIGNAL=0$
+^VERIFICATION SUCCESSFUL$

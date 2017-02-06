@@ -6,12 +6,13 @@
 #include "strategy_solver_enumeration.h"
 #include "util.h"
 
-bool strategy_solver_enumerationt::iterate(invariantt &_inv)
+strategy_solver_baset::progresst
+strategy_solver_enumerationt::iterate(invariantt &_inv)
 {
   tpolyhedra_domaint::templ_valuet &inv = 
     static_cast<tpolyhedra_domaint::templ_valuet &>(_inv);
 
-  bool improved = false;
+  progresst progress = CONVERGED;
 
   solver.new_context();
 
@@ -47,7 +48,8 @@ bool strategy_solver_enumerationt::iterate(invariantt &_inv)
   debug() << eom;
 #endif
 
-  solver << disjunction(strategy_cond_exprs);
+  solver << or_exprt(disjunction(strategy_cond_exprs), 
+		     literal_exprt(assertion_check));
 
 #ifdef DEBUG_OUTPUT
   debug() << "solve(): ";
@@ -123,9 +125,14 @@ bool strategy_solver_enumerationt::iterate(invariantt &_inv)
           ", simplified value: " << from_expr(ns,"",v) << eom;
 
         tpolyhedra_domain.set_row_value(row,v,inv);
+        progress = CHANGED;
       }
     }
-    improved = true;
+    if(!progress == CHANGED) //only possible if assertion check fails
+    {
+      solver.pop_context();
+      return FAILED;
+    } 
   }
   else 
   {
@@ -145,5 +152,5 @@ bool strategy_solver_enumerationt::iterate(invariantt &_inv)
   }
   solver.pop_context();
 
-  return improved;
+  return progress;
 }

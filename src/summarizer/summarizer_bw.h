@@ -31,7 +31,7 @@ class summarizer_bwt : public summarizer_baset
   summarizer_baset(_options,_summary_db,_ssa_db,_ssa_unwinder,_ssa_inliner)
   {}
 
-  virtual void summarize(); 
+  virtual void summarize();
   virtual void summarize(const function_namet &entry_function); 
 
 
@@ -41,7 +41,7 @@ class summarizer_bwt : public summarizer_baset
     		           const exprt &postcondition,
                            bool context_sensitive);
 
-  void inline_summaries(const function_namet &function_name, 
+  virtual void inline_summaries(const function_namet &function_name, 
 			local_SSAt &SSA,
 			const summaryt &old_summary,
     		        const exprt &postcondition,

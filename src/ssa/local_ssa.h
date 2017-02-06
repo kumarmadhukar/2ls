@@ -60,11 +60,15 @@ public:
       std::list<nodet>::iterator _loophead) 
       : 
         enabling_expr(true_exprt()),
-	marked(false),
+        marked(false), function_calls_inlined(false),
         location(_location), 
         loophead(_loophead)
       { 
       }
+
+    exprt enabling_expr; //for incremental unwinding
+
+    bool marked; //for incremental solving
 
     typedef std::vector<equal_exprt> equalitiest;
     equalitiest equalities;
@@ -74,12 +78,14 @@ public:
 
     typedef std::vector<exprt> assertionst;
     assertionst assertions;
+    exprt::operandst assertions_after_loop; //for k-induction assertion hoisting
+
+    typedef std::vector<exprt> assumptionst;
+    assertionst assumptions;
     
     typedef std::vector<function_application_exprt> function_callst;
     function_callst function_calls;
-
-    exprt enabling_expr; //for incremental unwinding
-    bool marked; //for incremental unwinding
+    bool function_calls_inlined;
 
     //custom invariant templates
     typedef std::vector<exprt> templatest;
@@ -87,7 +93,6 @@ public:
 
     locationt location; //link to goto instruction
     std::list<nodet>::iterator loophead; //link to loop head node
-       // otherwise points to nodes.end() 
 
     void output(std::ostream &, const namespacet &) const;
 
@@ -108,23 +113,24 @@ public:
   void mark_nodes()
   {
     for(nodest::iterator n_it=nodes.begin();
-	n_it!=nodes.end(); n_it++) n_it->marked = true;
+        n_it!=nodes.end(); n_it++) n_it->marked = true;
   }
   void unmark_nodes()
   {
-      for(nodest::iterator n_it=nodes.begin();
-	        n_it!=nodes.end(); n_it++) n_it->marked = false;
+    for(nodest::iterator n_it=nodes.begin();
+        n_it!=nodes.end(); n_it++) n_it->marked = false;
   }
 
   // for incremental unwinding
-  std::list<symbol_exprt> enabling_exprs;
+  std::vector<exprt> enabling_exprs;
   exprt get_enabling_exprs() const;
 
   // function entry and exit variables
   typedef std::list<symbol_exprt> var_listt;
   typedef std::set<symbol_exprt> var_sett;
   var_listt params;  
-  var_sett globals_in, globals_out;  
+  var_sett globals_in, globals_out;
+  std::set<exprt> nondets;  
 
   bool has_function_calls() const;
 
@@ -183,7 +189,6 @@ public:
   nodest::iterator find_node(locationt loc);
   nodest::const_iterator find_node(locationt loc) const;
   void find_nodes(locationt loc, std::list<nodest::const_iterator> &_nodes) const;
-
   inline locationt get_location(unsigned location_number) const
   {
     location_mapt::const_iterator it=location_map.find(location_number);
@@ -204,12 +209,20 @@ protected:
   void build_guard(locationt loc);
   void build_function_call(locationt loc);
   void build_assertions(locationt loc);
+  void build_assumptions(locationt loc);
+  void assertions_after_loop();
 
   // custom templates
   void collect_custom_templates();
   replace_mapt template_newvars;
   exprt template_last_newvar;
+
+  void get_nondet_vars(const exprt &expr);
+  void get_nondet_vars();
 };
+
+std::vector<exprt> & operator <<
+  (std::vector<exprt> &dest, const local_SSAt &src);
 
 std::list<exprt> & operator <<
   (std::list<exprt> &dest, const local_SSAt &src);

@@ -26,14 +26,20 @@ public:
 
   void init();
 
+  void unwind_loop_at_location(unsigned loc, unsigned k);
+  unsigned unwind_loop_at_location(unsigned loc);
   void unwind(unsigned k);
 
   //TODO: not yet sure how to do that
 /*  void unwind(locationt loop_head_loc, unsigned k)
     { unwind(loops[loop_head_loc],k); } */
 
-  //TOOD: this should be loop specific in future, maybe move to unwindable_local_ssa as it is not really unwinder related
-  void loop_continuation_conditions(exprt::operandst& loop_cont) const;
+  //TODO: this should be loop specific in future, maybe move to unwindable_local_ssa as it is not really unwinder related
+  void compute_loop_continuation_conditions();
+  void compute_enable_expr();
+  void loop_continuation_conditions(exprt::operandst &loop_cont) const;
+  void loop_continuation_conditions(const locationt& loop_id, 
+                                    exprt::operandst &loop_cont) const;
 
   //TODO: these two should be possible with unwindable_local_ssa facilities
   //exprt rename_invariant(const exprt& inv_in) const; 
@@ -46,7 +52,6 @@ protected:
   const irep_idt fname;
   unwindable_local_SSAt& SSA;
   bool is_kinduction,is_bmc;
-  symbol_exprt current_enabling_expr; //TODO must become loop-specific
 
   class loopt //loop tree
   {
@@ -65,6 +70,12 @@ protected:
     bool is_dowhile;
     bool is_root;
     long current_unwinding;
+
+    // to have an enabling_expr and current_unwindings (odometert)
+    exprt::operandst loop_enabling_exprs;
+
+    exprt::operandst current_continuation_conditions;
+
     typedef std::map<exprt,exprt::operandst> exit_mapt;
     exit_mapt exit_map;
     std::map<symbol_exprt,symbol_exprt> pre_post_map;
@@ -89,11 +100,12 @@ protected:
   void build_pre_post_map();
   void build_exit_conditions();
 
-  void unwind(loopt &loop, unsigned k, bool is_new_parent);
-
+  void unwind(loopt &loop, unsigned k, bool is_new_parent,
+	      bool propagate = false, unsigned prop_unwind = 0,
+	      unsigned prop_loc = 0, bool propagate_all = false);
+  
   exprt get_continuation_condition(const loopt& loop) const;
-  void loop_continuation_conditions(const loopt& loop, 
-				    exprt::operandst &loop_cont) const;
+  void compute_loop_continuation_conditions(loopt& loop);
   
   void add_loop_body(loopt &loop);
   void add_assertions(loopt &loop, bool is_last);
@@ -119,12 +131,15 @@ public:
 
   void init(bool is_kinduction, bool is_bmc);
   void init_localunwinders();
-
+  
+  void unwind_loop_alone(const irep_idt fname, unsigned loc, unsigned k);
+  unsigned unwind_loop_once_more(const irep_idt fname, unsigned loc);
   void unwind(const irep_idt fname, unsigned k);
   void unwind_all(unsigned k);
 
   ssa_local_unwindert &get(const irep_idt& fname)
     { return unwinder_map.at(fname); }
+
 
 protected:
   ssa_dbt& ssa_db;

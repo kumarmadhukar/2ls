@@ -10,14 +10,15 @@ class strategy_solver_equalityt : public strategy_solver_baset
   explicit strategy_solver_equalityt(
     equality_domaint &_equality_domain,
     incremental_solvert &_solver, 
+    literalt _assertion_check,
     const namespacet &_ns) : 
-  strategy_solver_baset(_solver, _ns),
+  strategy_solver_baset(_solver, _assertion_check, _ns),
     equality_domain(_equality_domain)
   {
     equality_domain.get_index_set(todo_equs);
   }
 
-  virtual bool iterate(invariantt &inv);
+  virtual progresst iterate(invariantt &inv);
 
  protected:
   equality_domaint &equality_domain;

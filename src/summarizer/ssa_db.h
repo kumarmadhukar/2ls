@@ -13,14 +13,20 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "../ssa/local_ssa.h"
 #include "../ssa/unwindable_local_ssa.h"
+#include "../ssa/ssa_inliner.h"
+#include "../ssa/ssa_dependency_graph.h"
 #include "../domains/incremental_solver.h"
 #include <goto-programs/goto_functions.h>
 
+class ssa_inlinert;
+class ssa_dependency_grapht;
+
 class ssa_dbt
 {
-public:
+ public:
   typedef irep_idt function_namet;
   typedef std::map<function_namet, unwindable_local_SSAt*> functionst;
+  typedef std::map<function_namet, ssa_dependency_grapht*> depgrapht;
   typedef std::map<function_namet, incremental_solvert*> solverst;
 
   explicit ssa_dbt(const optionst &_options) 
@@ -39,6 +45,9 @@ public:
 
   local_SSAt &get(const function_namet &function_name) const 
     { return *store.at(function_name); }
+
+  ssa_dependency_grapht &get_depgraph(const function_namet &function_name) const 
+    { return *depgraph_store.at(function_name); }
 
   incremental_solvert &get_solver(const function_namet &function_name)
   { 
@@ -63,9 +72,12 @@ public:
     store[function_name] = new unwindable_local_SSAt(goto_function,ns);
   }
 
+  void depgraph_create(const function_namet &function_name, const namespacet &ns, ssa_inlinert &ssa_inliner, bool entry);
+  
  protected:
   const optionst &options;
   functionst store;
+  depgrapht depgraph_store;
   solverst the_solvers;
 };
 

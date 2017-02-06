@@ -90,32 +90,48 @@ void incremental_solvert::make_context_permanent()
 #endif
 }
 
-void incremental_solvert::debug_add_to_formula(const exprt &expr) 
+void incremental_solvert::debug_add_to_formula(const exprt &_expr, 
+                                               exprt activation) 
 {
+  if(_expr.id()!=ID_and)
+  {
 #ifdef NON_INCREMENTAL
-  // no debug mode for non-incremental yet
+    // no debug mode for non-incremental yet
+    assert(0);
 #else
-  literalt l = solver->convert(expr);
-  if(l.is_false())
-  {
+    exprt expr;
+    if(activation.is_nil())
+      expr = _expr;
+    else
+      expr = or_exprt(_expr, activation);
+    literalt l = solver->convert(expr);
+    if(l.is_false())
+    {
 #ifdef DEBUG_OUTPUT
-    debug() << "literal " << l << ": false = " << from_expr(ns,"",expr) <<eom;
+      debug() << "literal " << l << ": false = " << from_expr(ns,"",expr) <<eom;
 #endif
-    literalt dummy = solver->convert(symbol_exprt("goto_symex::\\dummy", 
-						 bool_typet()));
-    formula.push_back(dummy);
-    formula.push_back(!dummy);
+      literalt dummy = solver->convert(symbol_exprt("goto_symex::\\dummy", 
+                                                    bool_typet()));
+      formula.push_back(dummy);
+      formula.push_back(!dummy);
 #ifdef DEBUG_OUTPUT
-    debug() << "literal " << dummy << ", " << !dummy << ": " 
-	      << from_expr(ns,"",expr) << eom;
+      debug() << "literal " << dummy << ", " << !dummy << ": " 
+              << from_expr(ns,"",expr) << eom;
+#endif
+    }
+    else if(!l.is_true()) 
+    {
+#ifdef DEBUG_OUTPUT
+      debug() << "literal " << l << ": " << from_expr(ns,"",expr) << eom;
+#endif
+      formula.push_back(l);
+      formula_expr.push_back(expr);
+    }
 #endif
   }
-  else if(!l.is_true()) 
+  else
   {
-#ifdef DEBUG_OUTPUT
-    debug() << "literal " << l << ": " << from_expr(ns,"",expr) << eom;
-#endif
-    formula.push_back(l);
+    forall_operands(it, _expr)
+      debug_add_to_formula(*it, activation);
   }
-#endif
 }

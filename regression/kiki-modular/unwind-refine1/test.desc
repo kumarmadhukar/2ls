@@ -1,0 +1,6 @@
+CORE
+main.c
+--havoc --k-induction  --no-propagation --spurious-check complete
+^EXIT=0$
+^SIGNAL=0$
+^VERIFICATION SUCCESSFUL$

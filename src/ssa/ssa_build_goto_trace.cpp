@@ -164,15 +164,15 @@ bool ssa_build_goto_tracet::record_step(
       step.full_lhs_value=rhs_simplified;
       if(lhs_simplified.id()==ID_symbol) 
       {
-	step.lhs_object = to_ssa_expr(lhs_simplified);
-        step.lhs_object_value=rhs_simplified;
         //filter out internal stuff
-	if(id2string(step.lhs_object.get_identifier()).find("#")
+	if(id2string(to_symbol_expr(lhs_simplified).get_identifier()).find("#")
             != std::string::npos)
 	  break;
 	//filter out undetermined values
-	if(step.lhs_object_value.id()!=ID_constant)
+	if(rhs_simplified.id()!=ID_constant)
   	  break;
+	step.lhs_object = ssa_exprt(lhs_simplified);
+        step.lhs_object_value=rhs_simplified;
       }
       if(step.lhs_object.is_nil())
 	break;

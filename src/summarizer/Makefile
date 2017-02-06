@@ -1,8 +1,12 @@
 include ../config.inc
 
-SRC = summarizer_base.cpp  \
+SRC = summarizer_base.cpp summarizer_languages.cpp  \
       summarizer_fw.cpp summarizer_bw.cpp \
       summarizer_fw_term.cpp summarizer_bw_term.cpp \
+      summarizer_bw_cex.cpp summarizer_bw_cex_complete.cpp \
+      summarizer_bw_cex_concrete.cpp  \
+      summarizer_bw_cex_wp.cpp  \
+      summarizer_bw_cex_ai.cpp summarizer_bw_cex_all.cpp \
       summarizer_fw_contexts.cpp \
       summarizer_main.cpp summarizer_parse_options.cpp \
       show.cpp summary_checker_base.cpp \
@@ -11,7 +15,8 @@ SRC = summarizer_base.cpp  \
       cover_goals_ext.cpp horn_encoding.cpp \
       summary_db.cpp summary.cpp ssa_db.cpp \
       array_abstraction.cpp preprocessing_util.cpp \
-      instrument_goto.cpp function_signature.cpp
+      instrument_goto.cpp 
+#function_signature.cpp
 
 OBJ+= $(CBMC)/src/ansi-c/ansi-c$(LIBEXT) \
       $(CBMC)/src/linking/linking$(LIBEXT) \
@@ -29,6 +34,7 @@ OBJ+= $(CBMC)/src/ansi-c/ansi-c$(LIBEXT) \
 
 DELTA_OBJ+=\
       $(CBMC)/src/goto-instrument/unwind$(OBJEXT) \
+      $(CBMC)/src/goto-instrument/loop_utils$(OBJEXT) \
       ../ssa/local_ssa$(OBJEXT) \
       ../ssa/malloc_ssa$(OBJEXT) \
       ../ssa/ssa_domain$(OBJEXT) \
@@ -44,11 +50,12 @@ DELTA_OBJ+=\
       ../ssa/ssa_unwinder$(OBJEXT)\
       ../ssa/unwindable_local_ssa$(OBJEXT)\
       ../ssa/ssa_value_set$(OBJEXT) \
-      ../functions/summary$(OBJEXT) \
-      ../functions/get_function$(OBJEXT) \
-      ../functions/path_util$(OBJEXT) \
-      ../functions/index$(OBJEXT) \
-      ../functions/index$(OBJEXT) \
+      ../ssa/const_propagator$(OBJEXT) \
+      ../ssa/replace_symbol_ext$(OBJEXT) \
+      ../ssa/ssa_const_propagator$(OBJEXT) \
+      ../ssa/ssa_dependency_graph$(OBJEXT) \
+      ../ssa/ssa_refiner_monolithic$(OBJEXT) \
+      ../ssa/ssa_refiner_selective$(OBJEXT) \
       ../domains/fixed_point$(OBJEXT) \
       ../domains/ssa_fixed_point$(OBJEXT) \
       ../domains/tpolyhedra_domain$(OBJEXT) \
@@ -68,12 +75,14 @@ DELTA_OBJ+=\
       ../domains/template_generator_summary$(OBJEXT) \
       ../domains/template_generator_callingcontext$(OBJEXT) \
       ../domains/ssa_analyzer$(OBJEXT) \
+      ../domains/disjunctive_analyzer$(OBJEXT) \
       ../domains/predicate$(OBJEXT) \
       ../domains/template_generator_ranking$(OBJEXT) \
       ../domains/ranking_solver_enumeration$(OBJEXT) \
       ../domains/linrank_domain$(OBJEXT) \
       ../domains/lexlinrank_solver_enumeration$(OBJEXT) \
-      ../domains/lexlinrank_domain$(OBJEXT)
+      ../domains/lexlinrank_domain$(OBJEXT) \
+      ../domains/simplify_bounds$(OBJEXT)
 #      ../domains/solver_enumeration$(OBJEXT) 
 #      ../domains/strategy_solver_binsearch2$(OBJEXT) 
 
@@ -96,7 +105,7 @@ LIBS =
 
 # $(CUDD)/obj/libobj.a 
 
-CLEANFILES = summarizer$(EXEEXT) $(DELTA_OBJ)
+CLEANFILES = 2ls$(EXEEXT) $(DELTA_OBJ)
 
 all: 2ls$(EXEEXT)
 

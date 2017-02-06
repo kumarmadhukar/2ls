@@ -23,10 +23,6 @@ Function: equality_domaint::initialize
 
 void equality_domaint::initialize(valuet &value)
 {
-#if 0
-  if(templ.size()==0) return domaint::initialize(value);
-#endif
-
   equ_valuet &v = static_cast<equ_valuet &>(value);
   v.equs.clear();
   v.disequs.clear();
@@ -88,7 +84,6 @@ exprt equality_domaint::get_post_not_disequ_constraint(unsigned index)
   return c;
 }
 
-
 /*******************************************************************\
 
 Function: template_domaint::project_on_vars
@@ -104,10 +99,6 @@ Function: template_domaint::project_on_vars
 void equality_domaint::project_on_vars(valuet &value, 
 				       const var_sett &vars, exprt &result)
 {
-#if 0
-  if(templ.size()==0) return domaint::project_on_vars(value,vars,result);
-#endif
-
   equ_valuet &v = static_cast<equ_valuet &>(value);
 
   exprt::operandst c;

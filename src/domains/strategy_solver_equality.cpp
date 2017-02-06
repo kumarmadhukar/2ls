@@ -3,7 +3,10 @@
 #include <util/simplify_expr.h>
 #include "strategy_solver_equality.h"
 
-bool strategy_solver_equalityt::iterate(invariantt &_inv) 
+//Comment: assertion check is not possible because this is a gfp solver
+
+strategy_solver_baset::progresst
+strategy_solver_equalityt::iterate(invariantt &_inv) 
 {
   equality_domaint::equ_valuet &inv = 
     static_cast<equality_domaint::equ_valuet &>(_inv);
@@ -74,7 +77,7 @@ bool strategy_solver_equalityt::iterate(invariantt &_inv)
   else //check disequalities
   {
     e_it = todo_disequs.begin();
-    if(e_it==todo_disequs.end()) return false; //done
+    if(e_it==todo_disequs.end()) return CONVERGED; //done
 
     solver.new_context();
 
@@ -113,5 +116,5 @@ bool strategy_solver_equalityt::iterate(invariantt &_inv)
     todo_disequs.erase(e_it);
   }
 
-  return true;
+  return CHANGED;
 }

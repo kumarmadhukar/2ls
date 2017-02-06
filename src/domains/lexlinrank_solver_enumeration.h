@@ -18,7 +18,7 @@ class lexlinrank_solver_enumerationt : public strategy_solver_baset
     unsigned _max_elements, // lexicographic components
     unsigned _max_inner_iterations
     ) : 
-  strategy_solver_baset(_solver, _ns),
+  strategy_solver_baset(_solver, literalt(), _ns),
     lexlinrank_domain(_lexlinrank_domain), 
     max_elements(_max_elements),
     max_inner_iterations(_max_inner_iterations),
@@ -28,7 +28,7 @@ class lexlinrank_solver_enumerationt : public strategy_solver_baset
     solver_instances++;
   }
 
-  virtual bool iterate(invariantt &inv);
+  virtual progresst iterate(invariantt &inv);
 
  protected:
   lexlinrank_domaint &lexlinrank_domain;

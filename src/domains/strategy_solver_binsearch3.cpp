@@ -9,12 +9,15 @@
 
 #define SUM_BOUND_VAR "sum_bound#"
 
-bool strategy_solver_binsearch3t::iterate(invariantt &_inv)
+//TODO: implement assertion check
+
+strategy_solver_baset::progresst
+strategy_solver_binsearch3t::iterate(invariantt &_inv)
 {
   tpolyhedra_domaint::templ_valuet &inv = 
     static_cast<tpolyhedra_domaint::templ_valuet &>(_inv);
 
-  bool improved = false;
+  progresst progress = CONVERGED;
 
   solver.new_context(); //for improvement check
 
@@ -63,7 +66,7 @@ bool strategy_solver_binsearch3t::iterate(invariantt &_inv)
 #if 0
     debug() << "SAT" << eom;
 #endif
-    improved = true;
+    progress = CHANGED;
 
     unsigned row=0;  
     for(;row<strategy_cond_literals.size(); row++)
@@ -88,12 +91,12 @@ bool strategy_solver_binsearch3t::iterate(invariantt &_inv)
   }
   solver.pop_context(); //improvement check
 
-  if(!improved) //done
+  if(progress != CHANGED) //done
   {
 #if 0
     debug() << "UNSAT" << eom;
 #endif
-    return improved;
+    return progress;
   }
 
   //symbolic value system
@@ -128,7 +131,7 @@ bool strategy_solver_binsearch3t::iterate(invariantt &_inv)
   }
   
   //do not solve system if we have just reached a new loop (the system will be very large!)
-  if(improved_from_neginf) return improved;
+  if(improved_from_neginf) return progress;
 
   solver.new_context(); //symbolic value system
   solver << pre_inv_expr;
@@ -250,5 +253,5 @@ bool strategy_solver_binsearch3t::iterate(invariantt &_inv)
   solver.pop_context();  //symbolic value system
 
 
-  return improved;
+  return progress;
 }

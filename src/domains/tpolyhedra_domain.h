@@ -30,12 +30,19 @@ public:
 
   typedef std::vector<template_rowt> templatet;
 
-  tpolyhedra_domaint(unsigned _domain_number, replace_mapt &_renaming_map) :
-    domaint(_domain_number,_renaming_map)
+  tpolyhedra_domaint(unsigned _domain_number, 
+		     replace_mapt &_renaming_map,
+		     const namespacet &_ns) :
+  domaint(_domain_number,_renaming_map, _ns),
+  current_refinement(0)
   {}
 
   // initialize value
   virtual void initialize(valuet &value);
+
+  virtual void reset_refinements() { current_refinement = 0; }
+  virtual bool refine(); //non-monotone condition refinement
+  std::vector<exprt> &refinement_expressions() { return refinement_exprs; }
 
   virtual void join(valuet &value1, const valuet &value2);
 
@@ -68,12 +75,14 @@ public:
   void set_row_value(const rowt &row, const row_valuet &row_value, templ_valuet &value);
 
   // max, min, comparison
-  row_valuet get_max_row_value(const rowt &row);
-  row_valuet get_min_row_value(const rowt &row);
+  row_valuet get_max_row_value(const rowt &row) const;
+  row_valuet get_min_row_value(const rowt &row) const;
   row_valuet between(const row_valuet &lower, const row_valuet &upper);
   bool less_than(const row_valuet &v1, const row_valuet &v2);
   bool is_row_value_inf(const row_valuet & row_value) const;
   bool is_row_value_neginf(const row_valuet & row_value) const;
+  bool is_row_value_inf(const valuet &value, const rowt & row) const;
+  bool is_row_value_neginf(const valuet &value, const rowt & row) const;
 
   // printing
   virtual void output_value(std::ostream &out, const valuet &value, const namespacet &ns) const;
@@ -83,6 +92,7 @@ public:
   virtual void project_on_vars(valuet &value, const var_sett &vars, exprt &result);
 
   unsigned template_size();
+  virtual bool is_spec_empty() const { return templ.size()==0; }
 
   // generating templates
   template_rowt &add_template_row(
@@ -111,7 +121,13 @@ protected:
   friend class strategy_solver_enumerationt;
 
   templatet templ;
-  
+
+  //non-monotone condition refinement
+  std::vector<exprt> refinement_exprs;
+  unsigned current_refinement, max_refinements;
+  exprt current_refinement_expr;
+
+  void replace_comparison(exprt &expr, bool greater);
 };
 
 #endif

@@ -3,12 +3,13 @@
 #include "strategy_solver_binsearch.h"
 #include "util.h"
 
-bool strategy_solver_binsearcht::iterate(invariantt &_inv)
+strategy_solver_baset::progresst 
+strategy_solver_binsearcht::iterate(invariantt &_inv)
 {
   tpolyhedra_domaint::templ_valuet &inv = 
     static_cast<tpolyhedra_domaint::templ_valuet &>(_inv);
 
-  bool improved = false;
+  progresst progress = CONVERGED;
 
   solver.new_context(); //for improvement check
 
@@ -43,7 +44,8 @@ bool strategy_solver_binsearcht::iterate(invariantt &_inv)
   debug() << eom;
 #endif
 
-  solver << disjunction(strategy_cond_exprs);
+  solver << or_exprt(disjunction(strategy_cond_exprs),
+		     literal_exprt(assertion_check));
 
 #if 0
   debug() << "solve(): ";
@@ -85,6 +87,13 @@ bool strategy_solver_binsearcht::iterate(invariantt &_inv)
     {
       if(solver.l_get(strategy_cond_literals[row]).is_true()) 
         break;  // we've found a row to improve
+    }
+
+    if(row==strategy_cond_literals.size())
+    { // No, we haven't found one.
+      // This can only happen if the assertions failed.
+      solver.pop_context();
+      return FAILED;
     }
 
     debug() << "improving row: " << row << eom;
@@ -198,7 +207,7 @@ bool strategy_solver_binsearcht::iterate(invariantt &_inv)
     solver.pop_context();  //symbolic value system
 
     tpolyhedra_domain.set_row_value(row,lower,inv);
-    improved = true;
+    progress = CHANGED;
   }
   else 
   {
@@ -216,9 +225,28 @@ bool strategy_solver_binsearcht::iterate(invariantt &_inv)
     }
 #endif
 
-    solver.pop_context(); //improvement check
+#ifdef DEBUG_FORMULA
+    for(unsigned i=0; i<solver.formula.size(); i++) 
+    {
+      if(solver.solver->is_in_conflict(solver.formula[i]))
+	debug() << "is_in_conflict: " << solver.formula[i] << eom;
+      else
+	debug() << "not_in_conflict: " << solver.formula[i] << eom;
+    }
+#endif
+
+    if(tpolyhedra_domain.refine()) 
+    {
+      debug() << "refining..." << eom;
+      progress = CHANGED; //refinement possible
+    }
+    else
+    {
+      tpolyhedra_domain.reset_refinements();
+      solver.pop_context(); //improvement check
+    }
   }
 
   
-  return improved;
+  return progress;
 }

@@ -1,24 +1,31 @@
 #include <iostream>
 
 #include <util/simplify_expr.h>
+#include <util/cprover_prefix.h>
 #include "lexlinrank_solver_enumeration.h"
 #include "util.h"
 
 //#define DEBUG_OUTER_FORMULA 
 //#define DEBUG_INNER_FORMULA 
 
-bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
+lexlinrank_solver_enumerationt::progresst lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
 {
   lexlinrank_domaint::templ_valuet &rank = 
     static_cast<lexlinrank_domaint::templ_valuet &>(_rank);
 
-  bool improved = false;
+  progresst progress = CONVERGED;
   static std::vector<unsigned> number_elements_per_row;
   number_elements_per_row.resize(rank.size());
 
   debug() << "(RANK) no rows = " << rank.size() << eom;
 
   solver.new_context();
+
+
+  //choose round to even rounding mode for template computations
+  //  not clear what its implications on soundness and termination of the synthesis are
+  exprt rounding_mode = symbol_exprt(CPROVER_PREFIX "rounding_mode",signedbv_typet(32));
+  solver << equal_exprt(rounding_mode,from_integer(mp_integer(0),signedbv_typet(32)));
 
   //handles on values to retrieve from model
   std::vector<lexlinrank_domaint::pre_post_valuest> rank_value_exprs;
@@ -100,6 +107,10 @@ bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
 
 	*inner_solver << constraint;
 
+        //set rounding mode
+        *inner_solver << equal_exprt(rounding_mode,
+				     from_integer(mp_integer(0),signedbv_typet(32)));
+
         //refinement
         if(!refinement_constraint.is_true()) 
 	{
@@ -144,7 +155,7 @@ bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
 	    }
 	  }
 
-	  improved = true;
+	  progress = CHANGED;
 
 	  // update the current template
 	  lexlinrank_domain.set_row_value(row, new_row_values, rank);
@@ -173,7 +184,7 @@ bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
 	  if(lexlinrank_domain.refine()) 
 	  {
 	    debug() << "refining..." << eom;
-	    improved = true; //refinement possible
+	    progress = CHANGED; //refinement possible
 
             if(!refinement_constraint.is_true()) inner_solver->pop_context();
 	  }
@@ -200,7 +211,7 @@ bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
 	      lexlinrank_domain.add_element(row, rank);
 	      number_inner_iterations = 0;
 	      debug() << "Inner solver: the number of inner iterations for row " << row << " was reset to " << number_inner_iterations << eom;
-	      improved = true;
+	      progress = CHANGED;
 	    }
 	  }
 	}
@@ -225,5 +236,5 @@ bool lexlinrank_solver_enumerationt::iterate(invariantt &_rank)
   }
 
   solver.pop_context();
-  return improved;
+  return progress;
 }

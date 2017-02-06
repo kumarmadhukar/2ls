@@ -1,18 +1,24 @@
 #include <iostream>
 #include <util/simplify_expr.h>
+#include <util/cprover_prefix.h>
 #include "ranking_solver_enumeration.h"
 #include "util.h"
 #include <solvers/smt2/smt2_dec.h>
 
-bool ranking_solver_enumerationt::iterate(invariantt &_rank)
+ranking_solver_enumerationt::progresst ranking_solver_enumerationt::iterate(invariantt &_rank)
 {
   linrank_domaint::templ_valuet &rank = 
     static_cast<linrank_domaint::templ_valuet &>(_rank);
 
-  bool improved = false;
+  progresst progress = CONVERGED;
 
   //context for "outer" solver
   solver.new_context();
+
+  //choose round to even rounding mode for template computations
+  //  not clear what its implications on soundness and termination of the synthesis are
+  exprt rounding_mode = symbol_exprt(CPROVER_PREFIX "rounding_mode",signedbv_typet(32));
+  solver << equal_exprt(rounding_mode,from_integer(mp_integer(0),signedbv_typet(32)));
 
   //handles on values to retrieve from model
   std::vector<linrank_domaint::pre_post_valuest> rank_value_exprs;
@@ -72,6 +78,8 @@ bool ranking_solver_enumerationt::iterate(invariantt &_rank)
 	debug() << "Inner Solver: " << row << " constraint " 
 		    << from_expr(ns,"", constraint) << eom;
 
+        inner_solver << equal_exprt(rounding_mode,
+				    from_integer(mp_integer(0),signedbv_typet(32)));
 	inner_solver << constraint;
 
         //refinement
@@ -85,6 +93,7 @@ bool ranking_solver_enumerationt::iterate(invariantt &_rank)
 	debug() << "inner solve()" << eom;
 	solver_calls++;
 	if(inner_solver() == decision_proceduret::D_SATISFIABLE && 
+     //TODO: not sure where number_inner_iterations is used
 	   number_inner_iterations < max_inner_iterations) 
 	{ 
 
@@ -104,11 +113,13 @@ bool ranking_solver_enumerationt::iterate(invariantt &_rank)
 		    << from_expr(ns,"", *it) << ": " 
 		    << from_expr(ns,"", v)  << eom;
 	  }
+          exprt rmv = inner_solver.solver->get(rounding_mode);
+          debug() << "Rounding mode: " << from_expr(ns, "", rmv) << eom;
 
 	  // update the current template
 	  linrank_domain.set_row_value(row, new_row_values, rank);
 
-	  improved = true;
+	  progress = CHANGED;
 	}
 	else 
 	{
@@ -117,7 +128,7 @@ bool ranking_solver_enumerationt::iterate(invariantt &_rank)
 	  if(linrank_domain.refine()) 
 	  {
 	    debug() << "refining..." << eom;
-	    improved = true; //refinement possible
+	    progress = CHANGED; //refinement possible
 	  }
 	  else
 	  {
@@ -140,5 +151,5 @@ bool ranking_solver_enumerationt::iterate(invariantt &_rank)
 
   solver.pop_context();
 
-  return improved;
+  return progress;
 }

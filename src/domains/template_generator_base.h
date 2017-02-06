@@ -16,16 +16,15 @@ Author: Peter Schrammel
 #include "../ssa/ssa_unwinder.h"
 #include "strategy_solver_base.h"
 
-//#define SHOW_TEMPLATE_VARIABLES
-//#define SHOW_TEMPLATE
+#define SHOW_TEMPLATE_VARIABLES
+#define SHOW_TEMPLATE
 
 class template_generator_baset : public messaget
 {
 public:
   typedef strategy_solver_baset::var_listt var_listt;
 
-  explicit template_generator_baset(optionst &_options, 
-				    ssa_dbt &_ssa_db,
+  explicit template_generator_baset(optionst &_options, ssa_dbt &_ssa_db,
                                     ssa_local_unwindert &_ssa_local_unwinder)
     : 
   options(_options), ssa_db(_ssa_db),
@@ -47,7 +46,7 @@ public:
   }
 
   virtual domaint::var_sett all_vars();
-
+  bool empty() { assert(domain_ptr!=NULL); return domain_ptr->is_spec_empty(); }
   domaint *domain() { assert(domain_ptr!=NULL); return domain_ptr; }
 
   domaint::var_specst var_specs;
@@ -75,6 +74,11 @@ protected:
 	       domaint::guardt post_guard,
 	       const domaint::kindt &kind,
 	       domaint::var_specst &var_specs);
+  void add_vars(const std::set<exprt> &vars_to_add, 			    
+		const domaint::guardt &pre_guard, 
+		const domaint::guardt &post_guard,
+		const domaint::kindt &kind,
+		domaint::var_specst &var_specs);
   void add_vars(const var_listt &vars_to_add, 			    
 		const domaint::guardt &pre_guard, 
 		const domaint::guardt &post_guard,

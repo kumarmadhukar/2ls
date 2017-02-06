@@ -2,7 +2,6 @@
 
 #include "util.h"
 
-
 /*******************************************************************\
 
 Function: extend_expr_types
@@ -31,7 +30,7 @@ void extend_expr_types(exprt &expr)
     return;
   }
   if(expr.id()==ID_constant) return;
-  if(expr.id()==ID_symbol) return;
+  if(expr.id()==ID_symbol || expr.id()==ID_nondet_symbol) return;
   if(expr.id()==ID_index) return;
   if(expr.id()==ID_unary_minus)
   {
@@ -157,7 +156,7 @@ void extend_expr_types(exprt &expr)
     }
     else assert(false);
   }
-  std::cerr << "failed expr: " << expr << std::endl;
+  std::cerr << "failed expr: " << expr.pretty() << std::endl;
   assert(false);
 }
 
@@ -201,10 +200,10 @@ mp_integer simplify_const_int(const exprt &expr)
     assert(d!=0);
     return simplify_const_int(expr.op0())/d;  
   }
-  if(expr.id()==ID_symbol) 
+  if(expr.id()==ID_symbol || expr.id()==ID_nondet_symbol) 
   {
 #if 0
-    std::cout << "substituting default value for " << expr << std::endl;
+    std::cerr << "substituting default value for " << expr << std::endl;
 #endif
     return 0; //default value if not substituted in expr
   }
@@ -280,13 +279,15 @@ ieee_floatt simplify_const_float(const exprt &expr)
     v1 /= v2;
     return v1; 
   }
-  if(expr.id()==ID_symbol)  //default value if not substituted in expr
+  if(expr.id()==ID_symbol || expr.id()==ID_nondet_symbol)  //default value if not substituted in expr
   {
     ieee_floatt v;
     v.make_zero();
+
 #if 0
-    std::cout << "substituting default value for " << expr << std::endl;
+    std::cerr << "substituting default value for " << expr << std::endl;
 #endif
+
     return v; 
   }
   if(expr.id()==ID_index) 
@@ -307,9 +308,7 @@ ieee_floatt simplify_const_float(const exprt &expr)
 
 constant_exprt simplify_const(const exprt &expr)
 {
-//  std::cerr << "const: " << expr << std::endl;
   if(expr.id()==ID_constant) return to_constant_expr(expr);
-  //TODO: handle "address_of" constants
   if(expr.id()==ID_index) 
   {
     const index_exprt &index_expr = to_index_expr(expr);
@@ -457,3 +456,83 @@ void merge_and(exprt & result, const exprt &expr1, const exprt &expr2,
   if(expr1!=expr2) result = and_exprt(expr1,expr2);
   simplify(result,ns);
 }
+
+/*******************************************************************\
+
+Function: make_zero
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+constant_exprt make_zero(const typet &type)
+{
+  if(type.id()==ID_unsignedbv || type.id()==ID_signedbv)
+    return from_integer(mp_integer(0),type);
+  
+  if(type.id()==ID_floatbv)
+  {
+    ieee_floatt cst(to_floatbv_type(type));
+    cst.make_zero();
+    return cst.to_expr();
+  }
+  assert(false);
+}
+
+/*******************************************************************\
+
+Function: make_one
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+constant_exprt make_one(const typet &type)
+{
+  if(type.id()==ID_unsignedbv || type.id()==ID_signedbv)
+    return from_integer(mp_integer(1),type);
+  
+  if(type.id()==ID_floatbv)
+  {
+    ieee_floatt cst(to_floatbv_type(type));
+    cst.from_integer(mp_integer(1));
+    return cst.to_expr();
+  }
+  assert(false);
+}
+
+/*******************************************************************\
+
+Function: make_minusone
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+constant_exprt make_minusone(const typet &type)
+{
+  if(type.id()==ID_unsignedbv || type.id()==ID_signedbv)
+    return from_integer(mp_integer(-1),type);
+  
+  if(type.id()==ID_floatbv)
+  {
+    ieee_floatt cst(to_floatbv_type(type));
+    cst.from_integer(mp_integer(1));
+    cst.negate();
+    return cst.to_expr();
+  }
+  assert(false);
+}
+

@@ -8,6 +8,8 @@
 #include <util/simplify_expr.h>
 #include <langapi/languages.h>
 
+#include "simplify_bounds.h"
+
 #define SYMB_BOUND_VAR "symb_bound#"
 
 #define ENABLE_HEURISTICS
@@ -37,6 +39,8 @@ void tpolyhedra_domaint::initialize(valuet &value)
     if(templ[row].kind==IN) v[row] = true_exprt(); //marker for oo
     else v[row] = false_exprt(); //marker for -oo
   }
+
+  refine(); //initialise refinements
 }
 
 /*******************************************************************\
@@ -53,20 +57,16 @@ Function: tpolyhedra_domaint::join
 
 void tpolyhedra_domaint::join(valuet &value1, const valuet &value2)
 {
-#if 0
-  if(templ.size()==0) return domaint::join(value1,value2);
-#endif
-
   templ_valuet &v1 = static_cast<templ_valuet&>(value1);
   const templ_valuet &v2 = static_cast<const templ_valuet&>(value2);
   assert(v1.size()==templ.size());
   assert(v1.size()==v2.size());
   for(unsigned row = 0; row<templ.size(); row++)
   {
-    if(is_row_value_inf(v1[row]) || is_row_value_inf(v2[row])) 
+    if(is_row_value_inf(v1,row) || is_row_value_inf(v2,row)) 
       v1[row] = true_exprt();
-    else if(is_row_value_neginf(v1[row])) v1[row] = v2[row];
-    else if(!is_row_value_neginf(v2[row])) 
+    else if(is_row_value_neginf(v1,row)) v1[row] = v2[row];
+    else if(!is_row_value_neginf(v2,row)) 
     {
       if(less_than(v1[row],v2[row])) v1[row] = v2[row];
     }
@@ -546,10 +546,6 @@ Function: tpolyhedra_domaint::project_on_vars
 void tpolyhedra_domaint::project_on_vars(valuet &value, 
 				       const var_sett &vars, exprt &result)
 {
-#if 0
-  if(templ.size()==0) return domaint::project_on_vars(value,vars,result);
-#endif
-
   const templ_valuet &v = static_cast<const templ_valuet &>(value);
 
   assert(v.size()==templ.size());
@@ -576,23 +572,25 @@ void tpolyhedra_domaint::project_on_vars(valuet &value,
     const row_valuet &row_v = v[row];
     if(templ_row.kind==LOOP)
     {
-      if(is_row_value_neginf(row_v)) 
-	c.push_back(implies_exprt(templ_row.pre_guard,false_exprt()));
-      else if(is_row_value_inf(row_v)) 
-	c.push_back(implies_exprt(templ_row.pre_guard,true_exprt()));
+      if(is_row_value_neginf(value, row)) 
+	//c.push_back(implies_exprt(templ_row.pre_guard,false_exprt()));
+        c.push_back(not_exprt(templ_row.pre_guard));
+      else if(is_row_value_inf(value, row)) 
+	; //c.push_back(implies_exprt(templ_row.pre_guard,true_exprt()));
       else c.push_back(implies_exprt(templ_row.pre_guard,
 		       binary_relation_exprt(templ_row.expr,ID_le,row_v)));
     }
     else
     {
-      if(is_row_value_neginf(row_v)) 
+      if(is_row_value_neginf(value, row)) 
 	c.push_back(false_exprt());
-      else if(is_row_value_inf(row_v)) 
-	c.push_back(true_exprt());
+      else if(is_row_value_inf(value, row)) 
+	; //c.push_back(true_exprt());
       else c.push_back(binary_relation_exprt(templ_row.expr,ID_le,row_v));
     }
   }
   result = conjunction(c);
+  simplify_bounds(result, ns);
 }
 
 /*******************************************************************\
@@ -629,9 +627,9 @@ Function: tpolyhedra_domaint::get_row_max_value
 \*******************************************************************/
 
 tpolyhedra_domaint::row_valuet tpolyhedra_domaint::get_max_row_value(
-  const tpolyhedra_domaint::rowt &row)
+  const tpolyhedra_domaint::rowt &row) const
 {
-  const template_rowt &templ_row = templ[row];
+  const template_rowt &templ_row = templ.at(row);
   if(templ_row.expr.type().id()==ID_signedbv)
   {
     return to_signedbv_type(templ_row.expr.type()).largest_expr();
@@ -662,9 +660,9 @@ Function: tpolyhedra_domaint::get_row_max_value
 \*******************************************************************/
 
 tpolyhedra_domaint::row_valuet tpolyhedra_domaint::get_min_row_value(
-  const tpolyhedra_domaint::rowt &row)
+  const tpolyhedra_domaint::rowt &row) const
 {
-  const template_rowt &templ_row = templ[row];
+  const template_rowt &templ_row = templ.at(row);
   if(templ_row.expr.type().id()==ID_signedbv)
   {
     return to_signedbv_type(templ_row.expr.type()).smallest_expr();
@@ -787,10 +785,17 @@ Function: tpolyhedra_domaint::is_row_value_neginf
  Purpose:
 
 \*******************************************************************/
-
-bool tpolyhedra_domaint::is_row_value_neginf(const row_valuet & row_value) const
+bool tpolyhedra_domaint::is_row_value_neginf(
+  const row_valuet &row_value) const
 {
   return row_value.get(ID_value)==ID_false;
+}
+
+bool tpolyhedra_domaint::is_row_value_neginf(
+  const valuet &value, const rowt &row) const
+{
+  const templ_valuet &v = static_cast<const templ_valuet &>(value);
+  return v.at(row).get(ID_value)==ID_false;
 }
 
 /*******************************************************************\
@@ -805,9 +810,40 @@ Function: tpolyhedra_domaint::is_row_value_inf
 
 \*******************************************************************/
 
-bool tpolyhedra_domaint::is_row_value_inf(const row_valuet & row_value) const
+bool tpolyhedra_domaint::is_row_value_inf(
+  const row_valuet &row_value) const
 {
   return row_value.get(ID_value)==ID_true;
+}
+
+bool tpolyhedra_domaint::is_row_value_inf(
+  const valuet &value, const rowt &row) const
+{
+  const templ_valuet &v = static_cast<const templ_valuet &>(value);
+  const row_valuet &row_value = v.at(row);
+  if(row_value.get(ID_value)==ID_true)
+    return true;
+  if(row_value==get_max_row_value(row))
+    return true;
+  const row_exprt &row_expr = templ[row].expr;
+  if(row_expr.id()==ID_unary_minus &&
+     row_expr.op0().id()==ID_typecast)
+  {
+    mp_integer rvalue;
+    to_integer(row_value, rvalue);
+    const typet &inner_type = row_expr.op0().op0().type();
+    mp_integer smallest;
+    if(inner_type.id()==ID_unsignedbv) 
+      smallest = to_unsignedbv_type(inner_type).smallest();
+    else if(inner_type.id()==ID_signedbv) 
+      smallest = to_signedbv_type(inner_type).smallest();
+    else 
+      return false;
+    if(smallest == rvalue)
+      return true;
+  }
+
+  return false;
 }
 
 /*******************************************************************\
@@ -1020,4 +1056,57 @@ void tpolyhedra_domaint::add_sum_template(const var_specst &var_specs,
     }
   }
 
+}
+
+/*******************************************************************\
+
+Function: tpolyhedra_domaint::refine
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: non-monotone condition refinement
+
+\*******************************************************************/
+
+void tpolyhedra_domaint::replace_comparison(exprt &expr, bool greater)
+{
+  //TODO
+}
+
+bool tpolyhedra_domaint::refine()
+{
+  return false;
+
+  //TODO
+  if(current_refinement==0) //initialise
+  {
+    if(refinement_exprs.size()==0)
+    {
+      max_refinements = 0;
+      return false;
+    }
+    max_refinements = 3;
+    current_refinement = 1;
+    exprt::operandst c;
+    //TODO    
+    current_refinement_expr = conjunction(c);
+    return true;
+  }
+
+  if(current_refinement>max_refinements) 
+    return false;
+
+  if(current_refinement==1)
+  {
+    exprt::operandst c;
+    //TODO    
+    current_refinement_expr = conjunction(c);
+  }
+  else if(current_refinement==2)
+    current_refinement_expr = true_exprt();
+
+  current_refinement++;
+  return true;
 }

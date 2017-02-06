@@ -146,6 +146,13 @@ void summarizer_fwt::do_summary(const function_namet &function_name,
     exprt inv = ssa_unwinder.get(function_name).rename_invariant(old_inv);
     conds.push_back(inv);
 
+#ifdef SHOW_WHOLE_RESULT
+  // to see all the custom template values
+  exprt whole_result;
+  analyzer.get_result(whole_result,template_generator.all_vars());
+  debug() << "whole result: " << from_expr(SSA.ns,"",whole_result) << eom;
+#endif
+
 #if 0
     std::ostringstream out;
     out << "(original inv)" << from_expr(SSA.ns,"",old_inv) << "\n";
@@ -158,23 +165,33 @@ void summarizer_fwt::do_summary(const function_namet &function_name,
 
   cond = conjunction(conds);
 
-  analyzer(solver,SSA,cond,template_generator);
-  analyzer.get_result(summary.fw_transformer,template_generator.inout_vars());
-  analyzer.get_result(summary.fw_invariant,template_generator.loop_vars());
+  bool assertions_check = false; //options.get_bool_option("k-induction");
+  bool assertions_hold = analyzer(solver,SSA,cond,template_generator,
+                                  assertions_check);
+  if(assertions_hold)
+  {
+    analyzer.get_result(summary.fw_transformer,template_generator.inout_vars());
+    analyzer.get_result(summary.fw_invariant,template_generator.loop_vars());
 
 #ifdef SHOW_WHOLE_RESULT
-  // to see all the custom template values
-  exprt whole_result;
-  analyzer.get_result(whole_result,template_generator.all_vars());
-  debug() << "whole result: " << from_expr(SSA.ns,"",whole_result) << eom;
+    // to see all the custom template values
+    exprt whole_result;
+    analyzer.get_result(whole_result,template_generator.all_vars());
+    debug() << "whole result: " << from_expr(SSA.ns,"",whole_result) << eom;
 #endif
 
-  if(context_sensitive && !summary.fw_precondition.is_true())
+    if(context_sensitive && !summary.fw_precondition.is_true())
+    {
+      summary.fw_transformer = 
+	implies_exprt(summary.fw_precondition,summary.fw_transformer);
+      summary.fw_invariant = 
+	implies_exprt(summary.fw_precondition,summary.fw_invariant);
+    }
+  }
+  else //!assertions_hold
   {
-    summary.fw_transformer = 
-      implies_exprt(summary.fw_precondition,summary.fw_transformer);
-    summary.fw_invariant = 
-      implies_exprt(summary.fw_precondition,summary.fw_invariant);
+    nonpassed_assertions = true; 
+    summary.nonpassed_assertions = analyzer.get_nonpassed_assertions();
   }
 
   solver_instances += analyzer.get_number_of_solver_instances();

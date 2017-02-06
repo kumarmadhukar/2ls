@@ -322,6 +322,17 @@ void template_generator_baset::add_var(const domaint::vart &var,
   }
 }
 
+void template_generator_baset::add_vars(const std::set<exprt> &vars_to_add, 
+			     const domaint::guardt &pre_guard, 
+			     const domaint::guardt &post_guard,
+			     const domaint::kindt &kind,
+			     domaint::var_specst &var_specs)
+{
+  for(std::set<exprt>::const_iterator it = vars_to_add.begin();
+      it != vars_to_add.end(); it++) 
+    add_var(*it,pre_guard,post_guard,kind,var_specs);
+}
+
 void template_generator_baset::add_vars(const local_SSAt::var_listt &vars_to_add, 
 			     const domaint::guardt &pre_guard, 
 			     const domaint::guardt &post_guard,
@@ -370,6 +381,7 @@ Function: template_generator_baset::handle_special_functions
 void template_generator_baset::handle_special_functions(const local_SSAt &SSA)
 {
   const irep_idt &function_id = SSA.goto_function.body.instructions.front().function;
+
   if(id2string(function_id) == "__CPROVER_initialize")
   {
     options.set_option("intervals",true);
@@ -525,7 +537,8 @@ bool template_generator_baset::instantiate_custom_templates(
 	    if(!found_poly) //create domain
 	    {
 	      domain_ptr = new tpolyhedra_domaint(domain_number,
-		post_renaming_map); //TODO: aux_renaming_map
+						  post_renaming_map, 
+						  SSA.ns); //TODO: aux_renaming_map
 	      found_poly = true;
 	    }
 	    exprt expr = t_it->op0();
@@ -546,7 +559,7 @@ bool template_generator_baset::instantiate_custom_templates(
 	    if(!found_predabs) //create domain
 	    {
 	      domain_ptr = new predabs_domaint(domain_number,
-		post_renaming_map); //TODO: aux_renaming_map
+					       post_renaming_map, SSA.ns); //TODO: aux_renaming_map
 	      found_predabs = true;
 	    }
 	    exprt expr = *t_it;
@@ -613,7 +626,7 @@ void template_generator_baset::instantiate_standard_domains(const local_SSAt &SS
   else if(options.get_bool_option("intervals"))
   {
     domain_ptr = new tpolyhedra_domaint(domain_number,
-					renaming_map);
+					renaming_map, SSA.ns);
     filter_template_domain();
     static_cast<tpolyhedra_domaint *>(domain_ptr)->add_interval_template(
       var_specs, SSA.ns);
@@ -621,29 +634,29 @@ void template_generator_baset::instantiate_standard_domains(const local_SSAt &SS
   else if(options.get_bool_option("zones"))
   {
     domain_ptr = new tpolyhedra_domaint(domain_number,
-					renaming_map);
+					renaming_map, SSA.ns);
     filter_template_domain();
-    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_difference_template(
-      var_specs, SSA.ns);
     static_cast<tpolyhedra_domaint *>(domain_ptr)->add_interval_template(
+      var_specs, SSA.ns);
+    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_difference_template(
       var_specs, SSA.ns);
   }
   else if(options.get_bool_option("octagons"))
   {
     domain_ptr = new tpolyhedra_domaint(domain_number,
-					renaming_map);
+					renaming_map, SSA.ns);
     filter_template_domain();
-    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_sum_template(
+    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_interval_template(
       var_specs, SSA.ns);
     static_cast<tpolyhedra_domaint *>(domain_ptr)->add_difference_template(
       var_specs, SSA.ns);
-    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_interval_template(
+    static_cast<tpolyhedra_domaint *>(domain_ptr)->add_sum_template(
       var_specs, SSA.ns);
   }
   else if(options.get_bool_option("qzones"))
   {
     domain_ptr = new tpolyhedra_domaint(domain_number,
-					renaming_map);
+					renaming_map, SSA.ns);
     filter_template_domain();
     static_cast<tpolyhedra_domaint *>(domain_ptr)->add_difference_template(
       var_specs, SSA.ns);
