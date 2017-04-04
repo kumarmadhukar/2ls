@@ -62,7 +62,7 @@ void summary_dbt::read(const std::string &id)
 {
   current=id;
 
-  summary.make_object();
+  summary=jsont::json_object();
 
   parse_json(file_name(id), get_message_handler(), summary);
 }

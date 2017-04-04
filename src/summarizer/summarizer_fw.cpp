@@ -77,8 +77,6 @@ void summarizer_fwt::compute_summary_rec(const function_namet &function_name,
     do_summary(function_name,SSA,summary,true_exprt(),context_sensitive);
   }
 
-
-#if 0
   if(!options.get_bool_option("competition-mode"))
   {
     std::ostringstream out;
@@ -86,18 +84,9 @@ void summarizer_fwt::compute_summary_rec(const function_namet &function_name,
     summary.output(out,SSA.ns);   
     status() << out.str() << eom;
   }
-#endif
 
   // store summary in db
   summary_db.put(function_name,summary);
-
-  if(!options.get_bool_option("competition-mode"))
-  {
-    std::ostringstream out;
-    out << std::endl << "Summary for function " << function_name << std::endl;
-    summary_db.get(function_name).output(out,SSA.ns);   
-    status() << out.str() << eom;
-  }
 }
 
 /*******************************************************************\
@@ -145,13 +134,6 @@ void summarizer_fwt::do_summary(const function_namet &function_name,
     const exprt &old_inv = summary_db.get(function_name).fw_invariant;
     exprt inv = ssa_unwinder.get(function_name).rename_invariant(old_inv);
     conds.push_back(inv);
-
-#ifdef SHOW_WHOLE_RESULT
-  // to see all the custom template values
-  exprt whole_result;
-  analyzer.get_result(whole_result,template_generator.all_vars());
-  debug() << "whole result: " << from_expr(SSA.ns,"",whole_result) << eom;
-#endif
 
 #if 0
     std::ostringstream out;

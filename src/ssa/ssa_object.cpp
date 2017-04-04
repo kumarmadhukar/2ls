@@ -6,7 +6,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-//#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
 #include <iostream>
@@ -55,6 +55,18 @@ void collect_objects_rec(
   std::set<ssa_objectt> &objects,
   std::set<exprt> &literals);
 
+/*******************************************************************\
+
+Function: collect_objects_address_of_rec
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
 void collect_objects_address_of_rec(
   const exprt &src,
   const namespacet &ns,
@@ -62,9 +74,9 @@ void collect_objects_address_of_rec(
   std::set<exprt> &literals)
 {
 #ifdef DEBUG
-  std::cout << "COLLECT ADDRESS OF " << from_expr(ns,"",src) << "\n";
+  std::cout << "COLLECT ADDRESS OF " << from_expr(ns, "", src) << "\n";
 #endif
-  
+
   if(src.id()==ID_index)
   {
     collect_objects_address_of_rec(
@@ -112,10 +124,9 @@ void collect_objects_rec(
   std::set<ssa_objectt> &objects,
   std::set<exprt> &literals)
 {
-
- #ifdef DEBUG
-  std::cout << "COLLECT " << from_expr(ns,"",src) << "\n";
- #endif
+#ifdef DEBUG
+  std::cout << "COLLECT " << from_expr(ns, "", src) << "\n";
+#endif
 
   if(src.id()==ID_code)
   {
@@ -146,7 +157,7 @@ void collect_objects_rec(
 
       const struct_typet &struct_type=to_struct_type(type);
       const struct_typet::componentst &components=struct_type.components();
-      
+
       for(struct_typet::componentst::const_iterator
           it=components.begin();
           it!=components.end();
@@ -158,10 +169,9 @@ void collect_objects_rec(
     }
     else
     {
-
- #ifdef DEBUG
+#ifdef DEBUG
       std::cout << "OBJECT " << ssa_object.get_identifier() << "\n";
- #endif
+#endif
 
       objects.insert(ssa_object);
     }
@@ -239,7 +249,7 @@ void ssa_objectst::add_ptr_objects(
       }
     }
   }
-  
+
   for(objectst::const_iterator o_it=tmp.begin();
       o_it!=tmp.end();
       o_it++)
@@ -277,7 +287,7 @@ void ssa_objectst::categorize_objects(
     exprt root_object=o_it->get_root_object();
 
 #ifdef DEBUG
-    std::cout << "CATEGORIZE " << from_expr(ns,"",root_object) << "\n";
+    std::cout << "CATEGORIZE " << from_expr(ns, "", root_object) << "\n";
 #endif
 
     if(root_object.id()==ID_symbol)
@@ -358,13 +368,14 @@ ssa_objectt::identifiert ssa_objectt::object_id_rec(
   {
     const member_exprt &member_expr=to_member_expr(src);
     const exprt &compound_op=member_expr.struct_op();
-    
+
     // need to distinguish union and struct members
     if(is_struct_member(member_expr, ns))
     {
       irep_idt compound_object=object_id_rec(compound_op, ns);
-      if(compound_object==irep_idt()) return identifiert();
-    
+      if(compound_object==irep_idt())
+        return identifiert();
+
       return identifiert(
         id2string(compound_object)+
         "."+id2string(member_expr.get_component_name()));
@@ -445,14 +456,13 @@ Function: is_symbol_struct_member
 
   Inputs:
 
- Outputs:
+ Outputs: returns true for symbol(.member)*, where
+          all members are struct members.
 
  Purpose:
 
 \*******************************************************************/
 
-// Returns true for symbol(.member)*, where
-// all members are struct members.
 bool is_symbol_struct_member(const exprt &src, const namespacet &ns)
 {
   return get_struct_rec(src, ns).id()==ID_symbol;
@@ -466,12 +476,11 @@ Function: is_symbol_or_deref_struct_member
 
  Outputs:
 
- Purpose:
+ Purpose: returns true for ((*ptr)|symbol)(.member)*, where
+          all members are struct members.
 
 \*******************************************************************/
 
-// Returns true for ((*ptr)|symbol)(.member)*, where
-// all members are struct members.
 bool is_symbol_or_deref_struct_member(const exprt &src, const namespacet &ns)
 {
   exprt struct_op=get_struct_rec(src, ns);
@@ -484,14 +493,13 @@ Function: is_deref_struct_member
 
   Inputs:
 
- Outputs:
+ Outputs: returns true for (*ptr)(.member)*, where
+          all members are struct members.
 
  Purpose:
 
 \*******************************************************************/
 
-// Returns true for (*ptr)(.member)*, where
-// all members are struct members.
 bool is_deref_struct_member(const exprt &src, const namespacet &ns)
 {
   return get_struct_rec(src, ns).id()==ID_dereference;

@@ -6,6 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <iostream>
+
 #include <util/std_types.h>
 #include <util/std_expr.h>
 #include <util/arith_tools.h>
@@ -20,7 +22,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 /*******************************************************************\
 
-Function: 
+Function: c_sizeof_type_rec
 
   Inputs:
 
@@ -43,10 +45,11 @@ inline static typet c_sizeof_type_rec(const exprt &expr)
     forall_operands(it, expr)
     {
       typet t=c_sizeof_type_rec(*it);
-      if(t.is_not_nil()) return t;
+      if(t.is_not_nil())
+        return t;
     }
   }
-  
+
   return nil_typet();
 }
 
@@ -73,7 +76,7 @@ exprt malloc_ssa(
   namespacet ns(symbol_table);
   exprt size=code.op0();
   typet object_type=nil_typet();
-  
+
   {
     // special treatment for sizeof(T)*x
     if(size.id()==ID_mult &&
@@ -82,20 +85,20 @@ exprt malloc_ssa(
     {
       object_type=array_typet(
         c_sizeof_type_rec(size.op0()),
-        size.op1());      
+        size.op1());
     }
     else if(size.id()==ID_mult &&
-       size.operands().size()==2 &&
-       size.op1().find(ID_C_c_sizeof_type).is_not_nil())
+            size.operands().size()==2 &&
+            size.op1().find(ID_C_c_sizeof_type).is_not_nil())
     {
       object_type=array_typet(
         c_sizeof_type_rec(size.op1()),
-        size.op0());      
+        size.op0());
     }
     else
     {
       typet tmp_type=c_sizeof_type_rec(size);
-      
+
       if(tmp_type.is_not_nil())
       {
         // Did the size get multiplied?
@@ -111,15 +114,17 @@ exprt malloc_ssa(
           else
           {
             mp_integer elements=alloc_size/elem_size;
-            
+
             if(elements*elem_size==alloc_size)
-              object_type=array_typet(tmp_type, from_integer(elements, size.type()));
+              object_type=array_typet(
+                tmp_type,
+                from_integer(elements, size.type()));
           }
         }
       }
     }
 
-    // the fall-back is to produce a byte-array    
+    // the fall-back is to produce a byte-array
     if(object_type.is_nil())
       object_type=array_typet(unsigned_char_type(), size);
   }
@@ -127,10 +132,10 @@ exprt malloc_ssa(
 #ifdef DEBUG
   std::cout << "OBJECT_TYPE: " << from_type(ns, "", object_type) << std::endl;
 #endif
-  
+
   // value
   symbolt value_symbol;
-  
+
   value_symbol.base_name="dynamic_object"+suffix;
   value_symbol.name="ssa::"+id2string(value_symbol.base_name);
   value_symbol.is_lvalue=true;
@@ -140,7 +145,7 @@ exprt malloc_ssa(
   symbol_table.add(value_symbol);
 
   address_of_exprt address_of;
-  
+
   if(object_type.id()==ID_array)
   {
     address_of.type()=pointer_typet(value_symbol.type.subtype());
@@ -154,9 +159,9 @@ exprt malloc_ssa(
     address_of.op0()=value_symbol.symbol_expr();
     address_of.type()=pointer_typet(value_symbol.type);
   }
-  
+
   exprt result=address_of;
-  
+
   if(result.type()!=code.type())
     result=typecast_exprt(result, code.type());
 
@@ -164,49 +169,78 @@ exprt malloc_ssa(
 }
 
 
-static void replace_malloc_rec(exprt &expr,
-         		const std::string &suffix,
-			symbol_tablet &symbol_table,
-                        const exprt &malloc_size,
-                        unsigned &counter)
+/*******************************************************************\
+
+Function: replace_malloc_rec
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+static void replace_malloc_rec(
+  exprt &expr,
+  const std::string &suffix,
+  symbol_tablet &symbol_table,
+  const exprt &malloc_size,
+  unsigned &counter)
 {
   if(expr.id()==ID_side_effect &&
      to_side_effect_expr(expr).get_statement()==ID_malloc)
   {
     assert(!malloc_size.is_nil());
-    expr.op0() = malloc_size;
- 
-    expr = malloc_ssa(to_side_effect_expr(expr),"$"+i2string(counter++)+suffix,symbol_table);
+    expr.op0()=malloc_size;
+
+    expr=malloc_ssa(to_side_effect_expr(expr),
+      "$"+i2string(counter++)+suffix, symbol_table);
   }
   else
-    Forall_operands(it,expr)
-      replace_malloc_rec(*it,suffix,symbol_table,malloc_size,counter);
+    Forall_operands(it, expr)
+      replace_malloc_rec(*it, suffix, symbol_table, malloc_size, counter);
 }
 
-void replace_malloc(goto_modelt &goto_model,
-		    const std::string &suffix)
+/*******************************************************************\
+
+Function: replace_malloc
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void replace_malloc(
+  goto_modelt &goto_model,
+  const std::string &suffix)
 {
-  unsigned counter = 0;
+  unsigned counter=0;
   Forall_goto_functions(f_it, goto_model.goto_functions)
   {
-    exprt malloc_size = nil_exprt();
+    exprt malloc_size=nil_exprt();
     Forall_goto_program_instructions(i_it, f_it->second.body)
     {
       if(i_it->is_assign())
       {
-        code_assignt &code_assign = to_code_assign(i_it->code);
-	if(code_assign.lhs().id()==ID_symbol)
-	{
-          // we have to propagate the malloc size 
+        code_assignt &code_assign=to_code_assign(i_it->code);
+        if(code_assign.lhs().id()==ID_symbol)
+        {
+          // we have to propagate the malloc size
           //   in order to get the object type
-	  // TODO: this only works with inlining
-	  const irep_idt &lhs_id = 
-	    to_symbol_expr(code_assign.lhs()).get_identifier();
-	  if(lhs_id == "malloc::malloc_size")
-	    malloc_size = code_assign.rhs();
-	}
-        replace_malloc_rec(code_assign.rhs(),suffix,
-			   goto_model.symbol_table,malloc_size,counter);
+          // TODO: this only works with inlining,
+          //       and btw, this is an ugly hack
+          std::string lhs_id=
+            id2string(to_symbol_expr(code_assign.lhs()).get_identifier());
+          if(lhs_id=="malloc::malloc_size" ||
+             lhs_id=="__builtin_alloca::alloca_size")
+            malloc_size=code_assign.rhs();
+        }
+        replace_malloc_rec(code_assign.rhs(), suffix,
+          goto_model.symbol_table, malloc_size, counter);
       }
     }
   }

@@ -11,9 +11,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/i2string.h>
 #include <util/string2int.h>
 #include <solvers/prop/prop_conv.h>
-#include <util/find_symbols.h>
-#include <util/i2string.h>
-#include <util/string2int.h>
 
 #include <goto-programs/read_goto_binary.h>
 #include <goto-programs/goto_model.h>
@@ -392,7 +389,7 @@ void print_symbol_values(const local_SSAt &SSA,
   }
 }
 
-void show_raw_countermodel(const irep_idt &property_id, 
+void show_error_trace(const irep_idt &property_id, 
 		const local_SSAt &SSA, 
 		prop_convt &solver,
 		std::ostream &out,
@@ -443,7 +440,7 @@ local_SSAt::locationt find_loc_by_guard(const local_SSAt &SSA,
   unsigned pos1 = gstr.find("#")+1;
   unsigned pos2 = gstr.find("%",pos1);
   unsigned n = safe_string2unsigned(gstr.substr(pos1,pos2));
-  return SSA.get_location(n);
+  return SSA.find_location_by_number(n);
 }
 
 void purify_identifiers(exprt &expr)

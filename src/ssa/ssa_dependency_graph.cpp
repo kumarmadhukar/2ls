@@ -84,11 +84,16 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
     {
       bool enabled=true;
       const irep_idt &enable=to_symbol_expr(node.enabling_expr).get_identifier();
-      for(size_t i=0; i<SSA.enabling_exprs.size(); ++i)
+
+      //for(size_t i=0; i<SSA.enabling_exprs.size(); ++i)
+      for(std::list<symbol_exprt>::const_iterator it=SSA.enabling_exprs.begin();
+		      it!=SSA.enabling_exprs.end(); ++it)
       {
-        if(SSA.enabling_exprs[i].id()==ID_not)
+        //if(SSA.enabling_exprs[i].id()==ID_not)
+        if((*it).id()==ID_not)
         {
-          if(to_symbol_expr(SSA.enabling_exprs[i].op0()).get_identifier()==enable)
+          //if(to_symbol_expr(SSA.enabling_exprs[i].op0()).get_identifier()==enable)
+          if(to_symbol_expr((*it).op0()).get_identifier()==enable)
           {
             enabled=false;
             break;

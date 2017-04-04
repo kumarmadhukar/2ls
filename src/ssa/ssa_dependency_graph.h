@@ -1,13 +1,13 @@
 
-#ifndef CPROVER_DELTACHECK_SSA_DEPENDENCY_GRAPH_H
-#define CPROVER_DELTACHECK_SSA_DEPENDENCY_GRAPH_H
+#ifndef CPROVER_2LS_SSA_DEPENDENCY_GRAPH_H
+#define CPROVER_2LS_SSA_DEPENDENCY_GRAPH_H
 
 #include <iostream>
 #include <util/find_symbols.h>
 
-#include "../summarizer/ssa_db.h"
-#include "ssa_inliner.h"
-#include "local_ssa.h"
+#include "../ssa/ssa_db.h"
+#include "../ssa/ssa_inliner.h"
+#include "../ssa/local_ssa.h"
 
 class ssa_inlinert;
 class ssa_dbt;

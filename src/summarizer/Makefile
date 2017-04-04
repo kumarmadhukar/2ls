@@ -1,8 +1,7 @@
 include ../config.inc
 
-SRC = summarizer_base.cpp summarizer_languages.cpp  \
+SRC = summarizer_base.cpp  \
       summarizer_fw.cpp summarizer_bw.cpp \
-      summarizer_fw_term.cpp summarizer_bw_term.cpp \
       summarizer_bw_cex.cpp summarizer_bw_cex_complete.cpp \
       summarizer_bw_cex_concrete.cpp  \
       summarizer_bw_cex_wp.cpp  \
@@ -12,11 +11,10 @@ SRC = summarizer_base.cpp summarizer_languages.cpp  \
       show.cpp summary_checker_base.cpp \
       summary_checker_ai.cpp summary_checker_bmc.cpp \
       summary_checker_kind.cpp \
-      cover_goals_ext.cpp horn_encoding.cpp \
+      cover_goals_ext.cpp \
       summary_db.cpp summary.cpp ssa_db.cpp \
       array_abstraction.cpp preprocessing_util.cpp \
-      instrument_goto.cpp 
-#function_signature.cpp
+      instrument_goto.cpp function_signature.cpp
 
 OBJ+= $(CBMC)/src/ansi-c/ansi-c$(LIBEXT) \
       $(CBMC)/src/linking/linking$(LIBEXT) \
@@ -32,10 +30,10 @@ OBJ+= $(CBMC)/src/ansi-c/ansi-c$(LIBEXT) \
       $(CBMC)/src/solvers/solvers$(LIBEXT) \
       $(CBMC)/src/util/util$(LIBEXT) \
 
+
 DELTA_OBJ+=\
       $(CBMC)/src/goto-instrument/unwind$(OBJEXT) \
-      $(CBMC)/src/goto-instrument/loop_utils$(OBJEXT) \
-      ../ssa/local_ssa$(OBJEXT) \
+      ../ssa/ssa_slicer$(OBJEXT) \
       ../ssa/malloc_ssa$(OBJEXT) \
       ../ssa/ssa_domain$(OBJEXT) \
       ../ssa/assignments$(OBJEXT) \
@@ -48,14 +46,16 @@ DELTA_OBJ+=\
       ../ssa/split_loopheads$(OBJEXT)\
       ../ssa/ssa_inliner$(OBJEXT)\
       ../ssa/ssa_unwinder$(OBJEXT)\
-      ../ssa/unwindable_local_ssa$(OBJEXT)\
       ../ssa/ssa_value_set$(OBJEXT) \
       ../ssa/const_propagator$(OBJEXT) \
       ../ssa/replace_symbol_ext$(OBJEXT) \
       ../ssa/ssa_const_propagator$(OBJEXT) \
       ../ssa/ssa_dependency_graph$(OBJEXT) \
-      ../ssa/ssa_refiner_monolithic$(OBJEXT) \
-      ../ssa/ssa_refiner_selective$(OBJEXT) \
+      ../functions/summary$(OBJEXT) \
+      ../functions/get_function$(OBJEXT) \
+      ../functions/path_util$(OBJEXT) \
+      ../functions/index$(OBJEXT) \
+      ../functions/index$(OBJEXT) \
       ../domains/fixed_point$(OBJEXT) \
       ../domains/ssa_fixed_point$(OBJEXT) \
       ../domains/tpolyhedra_domain$(OBJEXT) \
@@ -76,15 +76,9 @@ DELTA_OBJ+=\
       ../domains/template_generator_callingcontext$(OBJEXT) \
       ../domains/ssa_analyzer$(OBJEXT) \
       ../domains/disjunctive_analyzer$(OBJEXT) \
-      ../domains/predicate$(OBJEXT) \
-      ../domains/template_generator_ranking$(OBJEXT) \
-      ../domains/ranking_solver_enumeration$(OBJEXT) \
-      ../domains/linrank_domain$(OBJEXT) \
-      ../domains/lexlinrank_solver_enumeration$(OBJEXT) \
-      ../domains/lexlinrank_domain$(OBJEXT) \
-      ../domains/simplify_bounds$(OBJEXT)
+      ../domains/predicate$(OBJEXT)
 #      ../domains/solver_enumeration$(OBJEXT) 
-#      ../domains/strategy_solver_binsearch2$(OBJEXT) 
+
 
 OBJ+=$(DELTA_OBJ)
 
@@ -105,9 +99,9 @@ LIBS =
 
 # $(CUDD)/obj/libobj.a 
 
-CLEANFILES = 2ls$(EXEEXT) $(DELTA_OBJ)
+CLEANFILES = summarizer$(EXEEXT) $(DELTA_OBJ)
 
-all: 2ls$(EXEEXT)
+all: summarizer$(EXEEXT)
 
 ifneq ($(wildcard $(CBMC)/src/cpp/Makefile),)
   OBJ += $(CBMC)/src/cpp/cpp$(LIBEXT)
@@ -121,6 +115,6 @@ endif
 
 ###############################################################################
 
-2ls$(EXEEXT): $(OBJ)
+summarizer$(EXEEXT): $(OBJ)
 	$(LINKBIN)
 

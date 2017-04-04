@@ -6,8 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_SSA_VALUE_SET_H
-#define CPROVER_SSA_VALUE_SET_H
+#ifndef CPROVER_2LS_SSA_SSA_VALUE_SET_H
+#define CPROVER_2LS_SSA_SSA_VALUE_SET_H
 
 #include <analyses/ai.h>
 
@@ -17,7 +17,8 @@ class ssa_value_domaint:public ai_domain_baset
 {
 public:
   virtual void transform(locationt, locationt, ai_baset &, const namespacet &);
-  virtual void output(std::ostream &, const ai_baset &, const namespacet &) const;
+  virtual void output(
+    std::ostream &, const ai_baset &, const namespacet &) const;
   bool merge(const ssa_value_domaint &, locationt, locationt);
 
   struct valuest
@@ -27,39 +28,42 @@ public:
     value_sett value_set;
     bool offset, null, unknown, integer_address;
     unsigned alignment;
-    
+
     inline valuest():
-      offset(false), null(false), unknown(false), integer_address(false),
+      offset(false),
+      null(false),
+      unknown(false),
+      integer_address(false),
       alignment(0)
     {
     }
-    
+
     void output(std::ostream &, const namespacet &) const;
-    
+
     bool merge(const valuest &src);
-    
+
     inline void clear()
     {
       *this=valuest();
     }
-    
-    bool empty() const
+
+    inline bool empty() const
     {
       return value_set.empty() && !null && !unknown && !integer_address;
     }
   };
-  
+
   // maps objects to values
   typedef std::map<ssa_objectt, valuest> value_mapt;
   value_mapt value_map;
-  
+
   const valuest operator()(const exprt &src, const namespacet &ns) const
   {
     valuest tmp;
     assign_rhs_rec(tmp, src, ns, false, 0);
     return tmp;
   }
-  
+
 protected:
   void assign_lhs_rec(
     const exprt &lhs, const exprt &rhs,
@@ -81,9 +85,12 @@ protected:
   static unsigned merge_alignment(unsigned a, unsigned b)
   {
     // could use lcm here
-    if(a==b) return a;
-    if(a==0) return b;
-    if(b==0) return a;
+    if(a==b)
+      return a;
+    if(a==0)
+      return b;
+    if(b==0)
+      return a;
     return 1;
   }
 };

@@ -11,7 +11,7 @@ Author: Peter Schrammel, Madhukar Kumar
 
 #include "ssa_refiner.h"
 
-#include "../summarizer/ssa_db.h"
+#include "../ssa/ssa_db.h"
 #include "ssa_inliner.h"
 #include "ssa_unwinder.h"
 
