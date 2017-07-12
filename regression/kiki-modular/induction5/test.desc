@@ -1,6 +1,0 @@
-CORE
-main.c
---k-induction --spurious-check complete
-^EXIT=10$
-^SIGNAL=0$
-^.*FAILURE$

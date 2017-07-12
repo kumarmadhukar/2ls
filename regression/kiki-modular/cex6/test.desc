@@ -1,6 +1,0 @@
-CORE
-main.c
---havoc --k-induction --spurious-check complete
-^EXIT=10$
-^SIGNAL=0$
-^VERIFICATION FAILED$

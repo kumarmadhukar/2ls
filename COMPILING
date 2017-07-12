@@ -1,6 +1,28 @@
-2LS 0.4
 
-./install.sh
+SUMMARIZER 0.1.0
 
-The executable is src/summarizer/2ls
+1) Get the CBMC source, via
+
+   svn co -r6562 http://svn.cprover.org/svn/cbmc/branches/peter-incremental-unwinding 2ls_cbmc_atva17
+
+   cd 2ls_cbmc_atva17/src
+
+	make minisat2-download
+	make glucose-download (optional)
+	make
+
+
+2) Do
+
+   cp src/config.inc.template src/config.inc
+
+3) Edit src/config.inc to point to the location of 2ls_cbmc_atva17 produced in step 1.
+
+4) Do
+
+   cd src; make
+
+5) Run
+  
+   src/summarizer/summarizer
 

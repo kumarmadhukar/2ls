@@ -46,18 +46,17 @@ exprt address_canonizer(
     {
       // get offset
       exprt offset=member_offset_expr(to_member_expr(object), ns);
-
+      
       // &x.m  ---> (&x)+offset
-
+      
       address_of_exprt address_of_expr(to_member_expr(object).struct_op());
       exprt rec_result=address_canonizer(address_of_expr, ns); // rec. call
 
       pointer_typet byte_pointer(unsigned_char_type());
       typecast_exprt typecast_expr(rec_result, byte_pointer);
       plus_exprt sum(typecast_expr, offset);
-      if(sum.type()!=address.type())
-        sum.make_typecast(address.type());
-
+      if(sum.type()!=address.type()) sum.make_typecast(address.type());
+      
       return sum;
     }
     else if(object.id()==ID_index)
@@ -70,9 +69,8 @@ exprt address_canonizer(
       pointer_type.subtype()=object.type();
       typecast_exprt typecast_expr(rec_result, pointer_type);
       plus_exprt sum(typecast_expr, to_index_expr(object).index());
-      if(sum.type()!=address.type())
-        sum.make_typecast(address.type());
-
+      if(sum.type()!=address.type()) sum.make_typecast(address.type());
+      
       return sum;
     }
     else
@@ -107,7 +105,7 @@ exprt address_canonizer(
   else if(address.id()==ID_typecast)
   {
     typecast_exprt tmp=to_typecast_expr(address);
-
+    
     // cast from another pointer?
     if(tmp.op().type().id()==ID_pointer)
     {

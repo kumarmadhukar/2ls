@@ -178,12 +178,12 @@ bool disjunctive_analyzert::operator()(
 
   //std::cout << "unsimplified disjunctive cond: " << from_expr(SSA.ns, "", disjunctive_conditions) << "\n\n";
   exprt simple_disjunctive_conditions = simplify_expr(disjunctive_conditions, SSA.ns); //disjunctive_conditions;
-  //std::cout << "  simplified disjunctive cond: " << from_expr(SSA.ns, "", simple_disjunctive_conditions) << "\n\n";
+  //std::cout << "simplified disjunctive cond: " << from_expr(SSA.ns, "", simple_disjunctive_conditions) << "\n\n";
 
   //converting simple_disjunctive_conditions into DNF
   //std::cout << "before conversion: " << from_expr(SSA.ns, "", simple_disjunctive_conditions) << "\n\n\n";
   this->convert_to_dnf(simple_disjunctive_conditions);
-  //std::cout << " after conversion: " << from_expr(SSA.ns, "", simple_disjunctive_conditions) << "\n\n\n";
+  //std::cout << "after  conversion: " << from_expr(SSA.ns, "", simple_disjunctive_conditions) << "\n\n\n";
     
   if(simple_disjunctive_conditions.id() == ID_or){
 
@@ -192,12 +192,11 @@ bool disjunctive_analyzert::operator()(
     exprt::operandst disjuncts=simple_disjunctive_conditions.operands();
     for(exprt::operandst::iterator d_it=disjuncts.begin();d_it!=disjuncts.end();d_it++){
       if((*d_it).id() == ID_not){
-        //std::cout << "processing (not) disjunct: " << from_expr(SSA.ns, "", *d_it) << "\n";
-
 	exprt::operandst ops = (*d_it).operands();
 	for(exprt::operandst::iterator o_it=ops.begin();o_it!=ops.end();o_it++){
 	  if((*o_it).id() == ID_equal){
 	    exprt::operandst ops_equality = (*o_it).operands();
+
 	    equal_exprt equal_expr_in_not = to_equal_expr(*o_it);
 	    
 	    bool constant_comparison = false;
@@ -212,9 +211,6 @@ bool disjunctive_analyzert::operator()(
 	    else{
 	      processed_disjuncts.push_back(*d_it);
 	    }
-	  }
-	  else{
-	    processed_disjuncts.push_back(*d_it);
 	  }
 	}
       }

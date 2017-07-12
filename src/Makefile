@@ -1,27 +1,30 @@
 include config.inc
 
-DIRS = 2ls ssa domains solver
+SUBDIRS = summarizer ssa solver domains functions 
 
-all: 2ls.dir ssa.dir domains.dir solver.dir
+all: summarizer 
+#deltagit
 
-###############################################################################
-
+.PHONY: $(SUBDIRS)
 .PHONY: clean
 
-ssa.dir: 
-domains.dir: ssa.dir
-solver.dir: ssa.dir domains.dir
-2ls.dir: ssa.dir domains.dir solver.dir
+$(SUBDIRS):
+	$(MAKE) -C $@
 
-# building for a particular directory
+# Dependencies
 
-$(patsubst %, %.dir, $(DIRS)):
-	## Entering $(basename $@)
-	$(MAKE) $(MAKEARGS) -C $(basename $@)
+summarizer: domains ssa
+deltacheck: ssa solver functions html
+deltagit: html
 
-# cleaning
 
-clean: $(patsubst %, %_clean, $(DIRS))
+clean: $(patsubst %, %_clean, $(SUBDIRS))
 
-$(patsubst %, %_clean, $(DIRS)):
-	$(MAKE) $(MAKEARGS) -C $(patsubst %_clean, %, $@) clean ; \
+$(patsubst %, %_clean, $(SUBDIRS)):
+	if [ -e $(patsubst %_clean, %, $@)/. ] ; then \
+	        $(MAKE) $(MAKEARGS) -C $(patsubst %_clean, %, $@) clean ; \
+	fi
+
+cbmc-patch: $(CBMC_PATCH)
+	PWD=`pwd`; cd $(CBMC); patch -p0 < $(PWD)/$(CBMC_PATCH)
+

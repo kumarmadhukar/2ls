@@ -49,8 +49,7 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
   depnodet sink_node;
   sink_node.is_assertion = false;
   sink_node.is_function_call = false;
-  sink_node.is_loop = false;
- 
+  
   // globals_out is the used_symbol of the sink_node
   for(local_SSAt::var_sett::const_iterator g_it = SSA.globals_out.begin();
       g_it != SSA.globals_out.end(); g_it++){
@@ -75,34 +74,9 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
   bool ignore_equality_done = false;
   
   for(local_SSAt::nodest::const_iterator n_it = SSA.nodes.begin();
-      n_it != SSA.nodes.end(); n_it++)
-  {
+      n_it != SSA.nodes.end(); n_it++){
+
     const local_SSAt::nodet &node=*n_it;
-
-    // check whether this node is enabled
-    if(!node.enabling_expr.is_true())
-    {
-      bool enabled=true;
-      const irep_idt &enable=to_symbol_expr(node.enabling_expr).get_identifier();
-
-      //for(size_t i=0; i<SSA.enabling_exprs.size(); ++i)
-      for(std::list<symbol_exprt>::const_iterator it=SSA.enabling_exprs.begin();
-		      it!=SSA.enabling_exprs.end(); ++it)
-      {
-        //if(SSA.enabling_exprs[i].id()==ID_not)
-        if((*it).id()==ID_not)
-        {
-          //if(to_symbol_expr(SSA.enabling_exprs[i].op0()).get_identifier()==enable)
-          if(to_symbol_expr((*it).op0()).get_identifier()==enable)
-          {
-            enabled=false;
-            break;
-          }
-        }
-      }
-      if(!enabled)
-        continue;
-    }
 
     // collecting symbols from equalities and populating dependency graph nodes
     for(local_SSAt::nodet::equalitiest::const_iterator e_it=node.equalities.begin();
@@ -114,26 +88,9 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	depnodet temp_node;
 	temp_node.is_assertion = false;
 	temp_node.is_function_call = false;
-  temp_node.is_loop = false;
 	temp_node.node_info = *e_it;
 	temp_node.location = n_it->location;
 
-  //loop-head select
-  //TODO: this is an ugly hack (this can be changed as soon as unwindable_local_SSA provides smooth renaming with odometers)
-  //if(n_it->loophead!=SSA.nodes.end())
-  if(e_it->op1().id()==ID_if &&
-     e_it->op1().op0().id()==ID_symbol)
-  {
-    std::string var_string = id2string(e_it->op1().op0().get(ID_identifier));
-	  if(((var_string.substr(0,14)) == "ssa::$guard#ls"))
-    {
-      temp_node.is_loop = true;
-/*    symbol_exprt lsguard = SSA.name(SSA.guard_symbol(),
-				    local_SSAt::LOOP_SELECT, n_it->location);
-            ssa_local_unwinder.unwinder_rename(lsguard,*n_it,true);*/
-      temp_node.guard = not_exprt(e_it->op1().op0());
-    }
-  }
 	//temp_node.trivial_guard = true;
 	
 	equal_exprt e = to_equal_expr(*e_it);
@@ -173,7 +130,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	depnodet temp_node;
 	temp_node.is_assertion = false;
 	temp_node.is_function_call = false;
-  temp_node.is_loop = false;
 	temp_node.node_info = *c_it;
 	temp_node.location = n_it->location;
 	find_symbols(*c_it,temp_node.used_symbols);
@@ -191,7 +147,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	depnodet temp_node;
 	temp_node.is_assertion = true;
 	temp_node.is_function_call = false;
-  temp_node.is_loop = false;
 	temp_node.node_info = *a_it;
 	temp_node.location = n_it->location;
 	find_symbols(*a_it,temp_node.used_symbols);
@@ -266,7 +221,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	      depnodet temp_node;
 	      temp_node.is_assertion = false;
 	      temp_node.is_function_call = false;
-        temp_node.is_loop = false;
 	      temp_node.node_info = *b_it;
   	      temp_node.location = n_it->location;
 	      
@@ -287,7 +241,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	      depnodet temp_node;
 	      temp_node.is_assertion = false;
 	      temp_node.is_function_call = false;
-        temp_node.is_loop = false;
 	      temp_node.node_info = *b_it;
 	      temp_node.location = n_it->location;
 
@@ -306,7 +259,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	    temp_node.guard = guard_binding;
 	    temp_node.is_assertion = false;
 	    temp_node.is_function_call = true;
-      temp_node.is_loop = false;
 	    temp_node.node_info = *f_it;
 	    temp_node.rename_counter = counter;
   	    temp_node.location = n_it->location;
@@ -316,25 +268,25 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
 	    for(local_SSAt::var_listt::const_iterator p_it = fSSA.params.begin();
 		p_it != fSSA.params.end(); p_it++){
 	      irep_idt id = (*p_it).get(ID_identifier);
-	      ssa_inliner.rename(id, counter);
-	      all_ssa_symbols.insert(id);
-	      temp_node.used_symbols.insert(id);
+	      irep_idt sym = ssa_inliner.rename(id, counter);
+	      all_ssa_symbols.insert(sym);
+	      temp_node.used_symbols.insert(sym);
 	    }
 
 	    for(local_SSAt::var_sett::const_iterator g_it = fSSA.globals_in.begin();
 		g_it != fSSA.globals_in.end(); g_it++){
 	      irep_idt id = (*g_it).get(ID_identifier);
-	      ssa_inliner.rename(id, counter);
-	      all_ssa_symbols.insert(id);
-	      temp_node.used_symbols.insert(id);
+	      irep_idt sym = ssa_inliner.rename(id, counter);
+	      all_ssa_symbols.insert(sym);
+	      temp_node.used_symbols.insert(sym);
 	    }
 
 	    for(local_SSAt::var_sett::const_iterator g_it = fSSA.globals_out.begin();
 		g_it != fSSA.globals_out.end(); g_it++){
 	      irep_idt id = (*g_it).get(ID_identifier);
-	      ssa_inliner.rename(id, counter);
-	      all_ssa_symbols.insert(id);
-	      temp_node.modified_symbols.insert(id);
+	      irep_idt sym = ssa_inliner.rename(id, counter);
+	      all_ssa_symbols.insert(sym);
+	      temp_node.modified_symbols.insert(sym);
 	    }
 	    
 	    depnodes_map.push_back(temp_node);
@@ -347,7 +299,6 @@ void ssa_dependency_grapht::create(const local_SSAt &SSA, ssa_inlinert &ssa_inli
   depnodet source_node;
   source_node.is_assertion = false;
   source_node.is_function_call = false;
-  source_node.is_loop = false;
   
   // params and globals_in are the modified_symbols at source_node
   
